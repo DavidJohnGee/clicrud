@@ -34,11 +34,7 @@ class telnet(object):
             if kwargs['setup'] != None:
                 _opts = kwargs['setup']._options
                 _args['splash'] = kwargs['setup']._splash
-                _args['username'] = _opts.username
-                _args['host'] = _opts.host
-                _args['password'] = _opts.password
                 _args['period'] = _opts.period
-                _args['enable'] = _opts.enable
                 _args['loop'] = _opts.loop
         else:
             _args['splash'] = False
@@ -201,11 +197,7 @@ class ssh(object):
             if kwargs['setup'] != None:
                 _opts = kwargs['setup']._options
                 _args['splash'] = kwargs['setup']._splash
-                _args['username'] = _opts.username
-                _args['host'] = _opts.host
-                _args['password'] = _opts.password
                 _args['period'] = _opts.period
-                _args['enable'] = _opts.enable
                 _args['loop'] = _opts.loop
         else:
             _args['splash'] = False

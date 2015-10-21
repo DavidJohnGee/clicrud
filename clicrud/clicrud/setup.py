@@ -90,38 +90,23 @@ class setup(object):
     def getpasswords(self):
         
         for thread in self._thread_list:
-            try:
-                if thread._kwargs['password'] != None:
-                    self._options.password = thread._kwargs['password']
-
-            except:
-                pass
-            
-            try:
-                if thread._kwargs['enable'] != None:
-                    self._options.enable = thread._kwargs['enable']
-            except:
-                pass
-            
-            if self._options.password == None and self._getpasswords:
-                print "Input password for device: "
-                self._options.password = getpass.getpass()
+          
+            if thread._kwargs['password'] == "" and self._getpasswords:
+                print "Input password for device %s: " % thread._kwargs['host']
+                thread._kwargs['password'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
-            if self._options.enable == None and self._getpasswords:
-                print "Input enable password for device: "
-                self._options.enable = getpass.getpass()
+                    
+            if thread._kwargs['enable'] == "" and self._getpasswords:
+                print "Input enable password for device %s: " % thread._kwargs['host']
+                thread._kwargs['enable'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
 
     
     def setup_options(self):
-        parser = OptionParser(usage="python icx_diagnose --username=\"name\" --hostname=\"192.0.2.1\" --method=\"telnet|ssh\" OPTIONAL --runonce --password", version="alpha 1.0")
-        parser.add_option("-n", "--node", dest="host", help="IP Address of ICX", metavar="Host IP", type="string")
-        parser.add_option("-u", "--username", dest="username", help="Username of account with admin rights on ICX", metavar="Username", type="string")
-        parser.add_option("-p", "--password", dest="password", help="Password for access to user account", metavar="Pass", type="string")
+        parser = OptionParser(usage="python <script> --timeperiod=\"time\" --continuous=\"loop\"", version="alpha 1.0")
         parser.add_option("-t", "--timeperiod", dest="period", help="Time period between data collection in seconds", metavar="Time", type="string")
-        parser.add_option("-e", "--enable", dest="enable", help="Enter the enable password for the device", metavar="Enable", type="string")
         parser.add_option("-c", "--continuous", dest="loop", help="If continous is set, then this library will execute in a loop governed by -t", metavar="Continous", action="store_true")
         return parser.parse_args()    
     
