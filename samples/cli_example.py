@@ -59,9 +59,12 @@ if __name__ == '__main__':
     #read = buildThread(read, clicrud, command="show version", method='ssh', fileoutput=True, fileformat='string',\
     #                   username="admin", host="192.0.2.2", enable="Passw0rd", password="Passw0rd")
     
-    read = buildThread(read, clicrud, command="show version", method='ssh',\
-                    username="admin", host="192.0.2.2", enable="Passw0rd", password="Passw0rd")
+    #read = buildThread(read, clicrud, command="show version", method='ssh',\
+    #                username="admin", host="192.0.2.2", enable="Passw0rd", password="Passw0rd")
 
+
+    read = buildThread(read, clicrud, command="show version", fileoutput=True, fileformat='string', method='ssh',\
+                    username="admin", host="192.0.2.2", password="Passw0rd", enable="Passw0rd")
 
     # Start does multiple things. Adds the function to the thread list, start processes and enters a loop state
     # if one has been called for via useage of the CLI script    
@@ -70,7 +73,7 @@ if __name__ == '__main__':
     # This one returns a dict where key = command and output= list of output lines
     #print read.output()
     # This one returns a decorated prettier string
-    print read.prettyOutput()
+    #print read.prettyOutput()
     
     # This does not immediately stop anything. It stops if the CLI loop exits
     clicrud.stop()

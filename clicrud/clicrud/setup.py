@@ -41,7 +41,7 @@ from time import sleep
 
 _NAP = 1
 # Default for sleep
-_SLEEP_DEFAULT = 3
+_SLEEP_DEFAULT = 600
 
 class setup(object):
     
@@ -63,8 +63,7 @@ class setup(object):
         (self._options, self._args) = self.setup_options()
         self._splash = splash
         self._getpasswords = getpasswords
-            # Location of PID file
-
+        
         # Go and get the PID
         self.createPIDfile(self._pidfile, str(getpid()))
         logging.info("Created PID File %s" % self._pidfile)
@@ -74,21 +73,10 @@ class setup(object):
         if self._splash:
             self.splash_screen()
         
-        # From here we need to remove up until (prepare to launch)
-        # and put in to (getpasswords())
-        #if self._options.password == None and self._getpasswords:
-        #    print "Input password for device: "
-        #    self._options.password = getpass.getpass()
-        #    if self._splash:
-        #        self.splash_screen()
-        #if self._options.enable == None and self._getpasswords:
-        #    print "Input enable password for device: "
-        #    self._options.enable = getpass.getpass()
-        #    if self._splash:
-        #        self.splash_screen()
-        # If setup is complete, prepare to launch!  
-        if self._splash:
-            self.splash_prepare_to_launch()
+        if not self._options.period == None:
+            self._SLEEP =int(self._options.period)
+        else:
+            self._SLEEP = _SLEEP_DEFAULT
 
             
     def createPIDfile(self, _pidfile, PIDInfo):
@@ -163,11 +151,6 @@ class setup(object):
                 logging.info("Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
     
     def main_loop(self, continuous):
-        if not self._options.period == None:
-            _SLEEP =int(self._options.period)
-        else:
-            _SLEEP = _SLEEP_DEFAULT
-        
         main_loop = True
         free_to_write = True
         while main_loop:
@@ -175,7 +158,7 @@ class setup(object):
                 # It is expected that we need to sleep post the run once
                 _SLEEP_ACCUM = 0
                 if continuous:
-                    while _SLEEP_ACCUM < _SLEEP:
+                    while _SLEEP_ACCUM < self._SLEEP:
                         sleep(_NAP)
                         _SLEEP_ACCUM += _NAP
                 # this is the loop that creates the threads and joins them together
@@ -201,10 +184,12 @@ class setup(object):
         
         # Start the multi-processing off!
         self.start_processes()
-        
+        if not self._options.loop:
+            self.splash_prepare_to_launch()
         ## If you only want to use library programming, then don't worry about this.
         if self._options.loop:
-            print "Entering loop state"
+            print "Entering periodic refresh loop of : %d seconds" % (self._SLEEP)
+            self.splash_prepare_to_launch()
             self.main_loop(True)
         
                 
