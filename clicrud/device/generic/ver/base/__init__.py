@@ -15,20 +15,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-
-import paramiko, time, telnetlib, io, logging
+import paramiko, time, telnetlib, io, logging, sys, os
 
 class telnet(object):
     def __init__(self, **kwargs):
-        """
-        Requires kwargs:
-            host = IP address
-            username = Username string
-            password = Password string
-            enable = Enable string
-        """
         _args = {}
         _opts = {}
+        self._error = False
         _t_args = kwargs
         if _t_args.get('setup'):    
             if kwargs['setup'] != None:
@@ -41,11 +34,12 @@ class telnet(object):
         
         _args.update(_t_args)
         
+        
         if _args.has_key('port'):
             pass
         else:
             _args['port'] = 23
-        
+            
         # Make these global per instance
         self._args = _args
         
@@ -71,9 +65,12 @@ class telnet(object):
                 _timer += 1
                 if _timer >= 10:
                     _detect = False
-            #self.client.close()
-        except:
-            pass
+                    
+        except Exception, err:
+            sys.stderr.write('ERROR %s\n' % os.strerror(err.errno))
+            logging.error('ERROR %s\n:' % err)
+            self._error = True
+            return
         
         # Now we know whether we need to send a username or enable password
         if self._send_username:
@@ -106,8 +103,12 @@ class telnet(object):
                     if _timer >= 10:
                         _detect = False
                         #self.client.close()
-            except:
-                pass
+            except Exception, err:
+                sys.stderr.write('ERROR %s\n' % os.strerror(err.errno))
+                logging.error('ERROR %s\n:' % err)
+                self._error = True
+                return
+
         
         if self._send_enable:
             _detect = True
@@ -136,8 +137,11 @@ class telnet(object):
                     if _timer >= 10:
                         _detect = False
                         #self.client.close()
-            except:
-                pass
+            except Exception, err:
+                sys.stderr.write('ERROR %s\n' % os.strerror(err.errno))
+                logging.error('ERROR %s\n:' % err)
+                self._error = True
+                return
         
     @property
     def hostname(self):
@@ -182,16 +186,10 @@ class telnet(object):
 
 class ssh(object):
     def __init__(self, **kwargs):
-        """
-        Requires kwargs:
-            host = IP address
-            username = Username string
-            password = Password string
-            enable = Enable string
-        """
         paramiko.util.log_to_file('/tmp/clicrud.log')
         _args = {}
         _opts = {}
+        self._error = False
         _t_args = kwargs
         if _t_args.get('setup'):    
             if kwargs['setup'] != None:
@@ -219,24 +217,30 @@ class ssh(object):
         self.client = paramiko.SSHClient()
         self.client.load_system_host_keys()
         #self.client.get_host_keys().add(_args['host'], 'ssh-rsa', key)
-        self.client.connect(_args['host'], username=_args['username'], password=_args['password'], port=_args['port'])
-
-        self.client_conn = self.client.invoke_shell()
-        # Check for mode (enable/no-enable)
-        time.sleep(0.1)
-        self.output = self.blocking_recv()
-        if ">" in self.output:
-            self.client_conn.send("en\n")
+        try:
+            self.client.connect(_args['host'], username=_args['username'], password=_args['password'], port=_args['port'])
+    
+            self.client_conn = self.client.invoke_shell()
+            # Check for mode (enable/no-enable)
+            time.sleep(0.1)
             self.output = self.blocking_recv()
-            self.client_conn.send(_args['enable'] + "\n")
-            self.output = self.blocking_recv()
-        #We should be in enable at this point
-        if "#" in self.output:
-            self._hostname = self.output.translate(None, '\r\n')
-            self.client_conn.send("skip\n")
-            self.output = self.blocking_recv()
-        # Let's detect whether enable mode for auth is configured
-
+            if ">" in self.output:
+                self.client_conn.send("en\n")
+                self.output = self.blocking_recv()
+                self.client_conn.send(_args['enable'] + "\n")
+                self.output = self.blocking_recv()
+                
+            #We should be in enable at this point
+            if "#" in self.output:
+                self._hostname = self.output.translate(None, '\r\n')
+                self.client_conn.send("skip\n")
+                self.output = self.blocking_recv()
+        
+        except Exception, err:
+            sys.stderr.write('ERROR %s\n' % str(err))
+            logging.error('ERROR %s\n:' % err)
+            self._error = True
+            return
         
     @property
     def hostname(self):
@@ -268,7 +272,7 @@ class ssh(object):
             self.output = self.blocking_recv(self._hostname)
             stream = io.BytesIO(self.output)
             self.count = 0
-            while self.count < 1:
+            while self.count < 2:
                 stream.readline()
                 self.count += 1
             # At this point, we're to the top of the stream and beyond the hostname and \r\n\r\n mess

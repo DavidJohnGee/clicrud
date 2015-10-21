@@ -15,21 +15,6 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
-"""
-Copyright 2015 Brocade Communications Systems, Inc.
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-"""
 
 import os, sys, getpass, logging, psutil
 
@@ -90,20 +75,21 @@ class setup(object):
         
         for thread in self._thread_list:
             
-            if thread._kwargs.get('password') == "":
+            if thread._kwargs['password'] == "":
                 print "Input password for device %s: " % thread._kwargs['host']
                 thread._kwargs['password'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
                     
-            if thread._kwargs.get('enable') == "":
-                print "Input enable password for device %s: " % thread._kwargs['host']
+            if thread._kwargs['enable'] == "":
+                print "Input password for device %s: " % thread._kwargs['host']
                 thread._kwargs['enable'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
+
     
     def setup_options(self):
-        parser = OptionParser(usage="python <script> --timeperiod=\"time\" --continuous=\"loop\"", version="alpha 1.0")
+        parser = OptionParser(usage="python icx_diagnose --username=\"name\" --hostname=\"192.0.2.1\" --method=\"telnet|ssh\" OPTIONAL --runonce --password", version="alpha 1.0")
         parser.add_option("-t", "--timeperiod", dest="period", help="Time period between data collection in seconds", metavar="Time", type="string")
         parser.add_option("-c", "--continuous", dest="loop", help="If continous is set, then this library will execute in a loop governed by -t", metavar="Continous", action="store_true")
         return parser.parse_args()    
@@ -151,7 +137,7 @@ class setup(object):
     
                 
             except KeyboardInterrupt:
-                print "Ctrl C - Stopping server"
+                print "\b\nCtrl C - Stopping server"
                 print "Stopping jobs %s..." % (self._pid_list)
                 #for p in self._thread_list:
                 #    p._t.terminate()
@@ -159,13 +145,11 @@ class setup(object):
                 main_loop = False
                 
     def start(self, *args):
-        
-        # We only need to do this if we're running a script
-
         for arg in args:
-            self._thread_list.append(arg)   
-             
-        self.getpasswords()   
+            self._thread_list.append(arg)       
+            
+        # We only need to do this if we're running a script
+        self.getpasswords()
         
         # Start the multi-processing off!
         self.start_processes()
@@ -184,13 +168,20 @@ class setup(object):
         ProcsStopped = 0
         while StopCheck:
             for _idx, _t in enumerate(self._thread_list):
-                if _t.finq == 'completed_run':
+                _qmsg = _t.finq
+                if _qmsg == 'completed_run':
                     _t.stop()
                     ProcsStopped += 1
                     logging.info("Stopped thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
+                if _qmsg == 'error':
+                    _t.stop()
+                    logging.info("Error on thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
+                    StopCheck = False
+                
+                if NumProcs == ProcsStopped:
+                    StopCheck = False
             sleep(0.5)
-            if NumProcs == ProcsStopped:
-                StopCheck = False
+
         print "\n\nGoodbye..."
         for pid in self._pid_list:
             p = psutil.Process(pid)

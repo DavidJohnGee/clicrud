@@ -65,7 +65,10 @@ def read(queue, finq, **kwargs):
     else:    
         _transport = generic(**_kwargs)
     
-    
+    if _transport.err:
+        finq.put('error')
+        _transport.close()
+        return
     # Now we want to call each command and put the string output in a list
     for index, command in enumerate(_command_list):
         _output_dict[command] = _transport.read(command, return_type='string')

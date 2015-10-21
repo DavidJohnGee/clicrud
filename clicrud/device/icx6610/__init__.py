@@ -75,3 +75,7 @@ class icx6610(object):
     @property
     def hostname(self):
         return self._transport.hostname
+    
+    @property
+    def err(self):
+        return self._transport._error
