@@ -67,8 +67,8 @@ class telnet(object):
                     _detect = False
                     
         except Exception, err:
-            sys.stderr.write('ERROR %s\n' % os.strerror(err.errno))
-            logging.error('ERROR %s\n:' % err)
+            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
+            logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
             self._error = True
             return
         
@@ -104,8 +104,8 @@ class telnet(object):
                         _detect = False
                         #self.client.close()
             except Exception, err:
-                sys.stderr.write('ERROR %s\n' % os.strerror(err.errno))
-                logging.error('ERROR %s\n:' % err)
+                sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
+                logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
                 self._error = True
                 return
 
@@ -138,8 +138,8 @@ class telnet(object):
                         _detect = False
                         #self.client.close()
             except Exception, err:
-                sys.stderr.write('ERROR %s\n' % os.strerror(err.errno))
-                logging.error('ERROR %s\n:' % err)
+                sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
+                logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
                 self._error = True
                 return
         
@@ -238,8 +238,8 @@ class ssh(object):
                 self.output = self.blocking_recv()
         
         except Exception, err:
-            sys.stderr.write('ERROR %s\n' % str(err))
-            logging.error('ERROR %s\n:' % err)
+            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
+            logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
             self._error = True
             return
         
