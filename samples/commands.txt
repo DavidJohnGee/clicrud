@@ -1,0 +1,2 @@
+show cpu 
+show version
