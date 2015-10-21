@@ -48,7 +48,7 @@ class setup(object):
     _pidfile = "/tmp/icx_collection.pid"
     _log = "/tmp/clicrud.log"
     
-    def __init__(self, splash, getpasswords):
+    def __init__(self, splash):
         # Entry point for __main__
         self._thread_list = []
         
@@ -62,7 +62,6 @@ class setup(object):
         # Deal with init args
         (self._options, self._args) = self.setup_options()
         self._splash = splash
-        self._getpasswords = getpasswords
         
         # Go and get the PID
         self.createPIDfile(self._pidfile, str(getpid()))
@@ -90,19 +89,18 @@ class setup(object):
     def getpasswords(self):
         
         for thread in self._thread_list:
-          
-            if thread._kwargs['password'] == "" and self._getpasswords:
+            
+            if thread._kwargs.get('password') == "":
                 print "Input password for device %s: " % thread._kwargs['host']
                 thread._kwargs['password'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
                     
-            if thread._kwargs['enable'] == "" and self._getpasswords:
+            if thread._kwargs.get('enable') == "":
                 print "Input enable password for device %s: " % thread._kwargs['host']
                 thread._kwargs['enable'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
-
     
     def setup_options(self):
         parser = OptionParser(usage="python <script> --timeperiod=\"time\" --continuous=\"loop\"", version="alpha 1.0")
@@ -161,11 +159,13 @@ class setup(object):
                 main_loop = False
                 
     def start(self, *args):
-        for arg in args:
-            self._thread_list.append(arg)       
-            
+        
         # We only need to do this if we're running a script
-        self.getpasswords()
+
+        for arg in args:
+            self._thread_list.append(arg)   
+             
+        self.getpasswords()   
         
         # Start the multi-processing off!
         self.start_processes()

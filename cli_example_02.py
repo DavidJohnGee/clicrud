@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # clicrud = setup(splash=False, getpasswords=False)
     
     # This one suites an interactive script
-    clicrud = setup(splash=True, getpasswords=True)
+    clicrud = setup(splash=True)
 
     # This is where you build your threads.
     # Options for read:
@@ -64,10 +64,10 @@ if __name__ == '__main__':
 
 
     read1 = buildThread(read, clicrud, command="show version", fileoutput=True, fileformat='string', method='ssh',\
-                    username="admin", host="192.0.2.1", password="Passw0rd", enable="Passw0rd")
+                    username="admin", host="192.0.2.1", password="", enable="Passw0rd")
     
     read2 = buildThread(read, clicrud, command="show version", fileoutput=True, fileformat='string', method='ssh',\
-                    username="admin", host="192.0.2.2", password = "Passw0rd", enable="Passw0rd")
+                    username="admin", host="192.0.2.2", password="", enable="Passw0rd")
 
     # Start does multiple things. Adds the function to the thread list, start processes and enters a loop state
     # if one has been called for via useage of the CLI script    

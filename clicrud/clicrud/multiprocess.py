@@ -28,7 +28,6 @@ class buildThread(object):
         self._finq = Queue()
         self._target = target
         self._clicrud = clicrud
-        #self._t = Process(target=self._target, args=(self._q, self._finq,), kwargs=self._kwargs,)
     
     def __str__(self):
         return str(self._kwargs)
