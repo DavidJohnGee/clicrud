@@ -22,7 +22,7 @@ from clicrud.crud import read
 if __name__ == '__main__':
     
     
-    # Let's do some setting u
+    # Let's do some setting up
     # splash = True (for scripting - makes a pretty CLI
     # getpasswords = True - the CLI will prompt you for what's missing
     # getpasswords = False - more for library usage and you must include password and enable in the kwargs for the call
