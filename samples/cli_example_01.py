@@ -64,7 +64,7 @@ if __name__ == '__main__':
 
 
     read = buildThread(read, clicrud, command="show version", fileoutput=True, fileformat='string', method='ssh',\
-                    username="admin", host="192.0.2.2", password="Passw0rd", enable="Passw0rd")
+                    username="admin", host="192.168.10.52", password="Passw0rd", enable="Passw0rd", type="icx6610")
 
     # Start does multiple things. Adds the function to the thread list, start processes and enters a loop state
     # if one has been called for via useage of the CLI script    

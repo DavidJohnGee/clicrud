@@ -63,7 +63,7 @@ class telnet(object):
                     _detect = False
                 time.sleep(0.1)
                 _timer += 1
-                if _timer >= 10:
+                if _timer >= 30:
                     _detect = False
                     
         except Exception, err:
@@ -84,6 +84,7 @@ class telnet(object):
             self._send_username = False
             self._send_enable = False
             try:
+                self.client.write("\r")
                 while _detect:
                     _detect_buffer += self.client.read_some()
                     if ">" in _detect_buffer:
@@ -92,6 +93,9 @@ class telnet(object):
                     if "#" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
+                        # Takes in to account exec banner
+                        self.client.read_until("#", timeout=1)
+                        # Do this to get a clean prompt
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
@@ -102,7 +106,7 @@ class telnet(object):
                     _timer += 1
                     if _timer >= 10:
                         _detect = False
-                        #self.client.close()
+
             except Exception, err:
                 sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
                 logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
@@ -119,14 +123,22 @@ class telnet(object):
                 while _detect:
                     _detect_buffer += self.client.read_some()
                     if "#" in _detect_buffer:
+                        # Takes in to account exec banner
+                        self.client.read_until("#", timeout=1)
+                        # Do this to get a clean prompt
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
+                        self._hostname = self._hostname.translate(None, '\r\n')
                         _detect = False
                         break
                     if "Password:" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
                         self.client.write(_args['enable'] + "\r")
+                        # Takes in to account exec banner
+                        self.client.read_until("#", timeout=1)
+                        # Do this to get a clean prompt
+                        self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
                         self.client.write("skip\r")
@@ -134,11 +146,11 @@ class telnet(object):
                         self.client.read_until(self._hostname)
                     time.sleep(0.1)
                     _timer += 1
-                    if _timer >= 10:
+                    if _timer >= 30:
                         _detect = False
                         #self.client.close()
             except Exception, err:
-                sys.stderr.write('\ERROR for host: %s - %s\n' % (_args['host'],str(err)))
+                sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
                 logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
                 self._error = True
                 return
@@ -186,6 +198,7 @@ class telnet(object):
 
 class ssh(object):
     def __init__(self, **kwargs):
+        
         paramiko.util.log_to_file('/tmp/clicrud.log')
         _args = {}
         _opts = {}
@@ -232,6 +245,8 @@ class ssh(object):
                 
             #We should be in enable at this point
             if "#" in self.output:
+                self.client_conn.send("\n")
+                self.output = self.blocking_recv()
                 self._hostname = self.output.translate(None, '\r\n')
                 self.client_conn.send("skip\n")
                 self.output = self.blocking_recv()
