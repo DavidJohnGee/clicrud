@@ -41,8 +41,8 @@ if __name__ == '__main__':
     # method = telnet/ssh
     # fileoutput = True/False (based on device-date naming)
     # fileformat =  json/string
-    # enable = enable password
-    # password = user account password
+    # enable = enable password (If you insert "", the script will ask you for it)
+    # password = user account password (If you insert "", the script will ask you for it)
     # username = user name of account
     # host = ip address or DNS lookup
     # port = port of service (telnet = 23, ssh = 22)
