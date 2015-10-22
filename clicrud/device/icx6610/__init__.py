@@ -39,22 +39,27 @@ class icx6610(object):
         _args = kwargs
         if _args.get('method') =='telnet' and _args.get('method') in METHOD_ATTRS:
             transport = baseTelnet(**_args)
-            _ver = transport.read("show version | inc SW")
-            for version in METHODS:
-                if any(version in ls for ls in _ver):
-                    self._device_version = version
-            transport.close()
+            if not transport._error:
+                _ver = transport.read("show version | inc SW")
+                for version in METHODS:
+                    if any(version in ls for ls in _ver):
+                        self._device_version = version
+                transport.close()
             
         if _args.get('method') =='ssh' and _args.get('method') in METHOD_ATTRS:
             transport = baseSSH(**_args)
-            _ver = transport.read("show version | inc SW")
-            for version in METHODS:
-                if any(version in ls for ls in _ver):
-                    self._device_version = version
-            transport.close()
-        
+            if not transport._error:
+                _ver = transport.read("show version | inc SW")
+                for version in METHODS:
+                    if any(version in ls for ls in _ver):
+                        self._device_version = version
+                transport.close()
+
         #self._transport = METHODS[self._device_version][_args.get('method')](host=_args.get('host'), port=_args.get('port'), username=_args.get('username'), enable=_args.get('enable'))
-        self._transport = METHODS[self._device_version][_args.get('method')](**_args)
+        if not transport._error:
+            self._transport = METHODS[self._device_version][_args.get('method')](**_args)
+        else:
+            self._transport = None
     
     @property
     def connected(self):
@@ -78,4 +83,7 @@ class icx6610(object):
     
     @property
     def err(self):
-        return self._transport._error
+        if self._transport == None:
+            return True
+        else:
+            return self._transport._error

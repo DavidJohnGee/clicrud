@@ -145,7 +145,11 @@ class telnet(object):
                         _detect = False
                         self.client.write(_args['enable'] + "\r")
                         # Takes in to account exec banner
-                        self.client.read_until("#", timeout=1)
+                        _error_check = self.client.read_until("#", timeout=1)
+                        
+                        if "incorrect" in _error_check:
+                            raise Exception('Incorrect authentication details')
+                        
                         # Do this to get a clean prompt
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
@@ -240,7 +244,7 @@ class ssh(object):
         self.client.load_system_host_keys()
         #self.client.get_host_keys().add(_args['host'], 'ssh-rsa', key)
         try:
-            self.client.connect(_args['host'], username=_args['username'], password=_args['password'], port=_args['port'])
+            self.client.connect(_args['host'], username=_args['username'], password=_args['password'], port=_args['port'], timeout=10)
     
             self.client_conn = self.client.invoke_shell()
             # Check for mode (enable/no-enable)
@@ -252,7 +256,11 @@ class ssh(object):
                 self.client_conn.send(_args['enable'] + "\n")
                 self.output = self.blocking_recv()
                 
-            #We should be in enable at this point
+            # Check for error
+            if "incorrect" in self.output:
+                raise Exception('Incorrect authentication details')
+                
+            # We should be in enable at this point
             if "#" in self.output:
                 self.client_conn.send("\n")
                 self.output = self.blocking_recv()
