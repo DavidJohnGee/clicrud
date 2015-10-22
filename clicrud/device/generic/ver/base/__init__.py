@@ -44,7 +44,14 @@ class telnet(object):
         self._args = _args
         
         _temp_data = ""
-        self.client = telnetlib.Telnet(str(_args['host']), _args['port'], 10)
+        try:
+            self.client = telnetlib.Telnet(str(_args['host']), _args['port'], 10)
+        except Exception, err:
+            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
+            logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
+            self._error = True
+            return
+            
         
         # Let's detect whether authentication or enable modes for auth are configured
         _detect = True
@@ -87,6 +94,8 @@ class telnet(object):
                 self.client.write("\r")
                 while _detect:
                     _detect_buffer += self.client.read_some()
+                    if "failure" in _detect_buffer:
+                        raise Exception('Incorrect authentication details')
                     if ">" in _detect_buffer:
                         self._send_enable = True
                         _detect = False
