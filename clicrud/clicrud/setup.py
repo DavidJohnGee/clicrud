@@ -40,8 +40,9 @@ class setup(object):
         # PID List
         self._pid_list = []
         
+        self.parallel = True
+        
         # Setup logging
-
         logging.basicConfig(filename=self._log,level=logging.DEBUG)
         
         # Deal with init args
@@ -102,15 +103,20 @@ class setup(object):
         print "Please hit CTRL+C to terminate\n"
     
     def splash_prepare_to_launch(self):
+        if not self.parallel:
+            print "In non-parallel mode"
         print "\n------Progress------\n"
     
     def start_processes(self):
+        # TODO: Insert parallel and linear handling of tasks
         for _idx, _t in enumerate(self._thread_list):
             _t.start()
             self._pid_list.append(_t.getPID())
             logging.info("Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
             # Uncomment out if we want to block the main thread until at least one pass has completed.
-            # _t.join()
+            if not self.parallel:
+                _t.ranonce
+                
     
     def run_processes(self):
         for _idx, _t in enumerate(self._thread_list):
@@ -120,22 +126,49 @@ class setup(object):
                 logging.info("Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
     
     def main_loop(self, continuous):
+        # TODO: Insert parallel and linear handling of tasks
         main_loop = True
         free_to_write = True
-        _all_ran_once = True
+        _all_ran_once = False
         while main_loop:
-            try:
-                # We only want to star the main timing cycle once the job has run at least once.
-                # Else we face overlapping jobs
-                for _idx, _t in enumerate(self._thread_list):
-                    if _t.ranonce:
-                        _all_ran_once = True
-                    else:
-                        _all_ran_once = False
-                
-                sleep(0.2)
+            if self.parallel == False:
+                try:
+                    
+                    _SLEEP_ACCUM = 0
+                    if continuous:
+                        while _SLEEP_ACCUM < self._SLEEP:
+                            sleep(_NAP)
+                            _SLEEP_ACCUM += _NAP
+                    # this is the loop that creates the threads and joins them together
+                    for _idx, _t in enumerate(self._thread_list):
+                        #print "Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t)
+                        _t.run()
+                        while not _t.ranonce:
+                            sleep(0.2)
+        
+                    
+                except KeyboardInterrupt:
+                    print "\b\nCtrl C - Stopping server"
+                    print "Stopping jobs %s..." % (self._pid_list)
+                    #for p in self._thread_list:
+                    #    p._t.terminate()
+                    #sys.exit(1)
+                    main_loop = False
+            
+            # PARALLEL OPERATION HERE
+            # IF parallel = True
+            if self.parallel == True:
+                try:
+                    
+                    # We only want to star the main timing cycle once the job has run at least once.
+                    # Else we face overlapping jobs
+                    if not _all_ran_once:
+                        for _idx, _t in enumerate(self._thread_list):
+                            #Wait until we've got our True signal from ranonce
+                            _t.ranonce
                         
-                if _all_ran_once:
+                        _all_ran_once = True
+                        
                     # It is expected that we need to sleep post the run once
                     _SLEEP_ACCUM = 0
                     if continuous:
@@ -146,15 +179,15 @@ class setup(object):
                     for _idx, _t in enumerate(self._thread_list):
                         #print "Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t)
                         _t.run()
-    
-                
-            except KeyboardInterrupt:
-                print "\b\nCtrl C - Stopping server"
-                print "Stopping jobs %s..." % (self._pid_list)
-                #for p in self._thread_list:
-                #    p._t.terminate()
-                #sys.exit(1)
-                main_loop = False
+        
+                    
+                except KeyboardInterrupt:
+                    print "\b\nCtrl C - Stopping server"
+                    print "Stopping jobs %s..." % (self._pid_list)
+                    #for p in self._thread_list:
+                    #    p._t.terminate()
+                    #sys.exit(1)
+                    main_loop = False
                 
     def start(self, *args):
         for arg in args:
@@ -163,14 +196,17 @@ class setup(object):
         # We only need to do this if we're running a script
         self.getpasswords()
         
-        # Start the multi-processing off!
-        self.start_processes()
+
         if not self._options.loop:
             self.splash_prepare_to_launch()
+            # Start the multi-processing off!
+            self.start_processes()
         ## If you only want to use library programming, then don't worry about this.
         if self._options.loop:
             print "Entering periodic refresh loop of : %d seconds" % (self._SLEEP)
             self.splash_prepare_to_launch()
+            # Start the multi-processing off!
+            self.start_processes()
             self.main_loop(True)
         
                 

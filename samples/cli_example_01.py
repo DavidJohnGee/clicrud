@@ -20,16 +20,16 @@ from clicrud.clicrud.multiprocess import buildThread
 from clicrud.crud import read
 
 if __name__ == '__main__':
-    
-    
+
+
     # Let's do some setting up
     # splash = True (for scripting - makes a pretty CLI
     # getpasswords = True - the CLI will prompt you for what's missing
     # getpasswords = False - more for library usage and you must include password and enable in the kwargs for the call
-    
+
     # The below would suite a scripting scenario
     # clicrud = setup(splash=False, getpasswords=False)
-    
+
     # This one suites an interactive script
     clicrud = setup(splash=True)
 
@@ -49,8 +49,8 @@ if __name__ == '__main__':
 
     #read = buildThread(read, clicrud, commands=["show version", "show stack"], method='telnet', fileoutput=True, fileformat='string',\
     #                   username="admin", host="192.168.10.52", enable="Passw0rd", password="Passw0rd")
-    
-    
+
+
     # Usage specific to ICX6610. 'Telnet' and 'ssh' methods exist. To override the port defaults of 22 & 23, add port=NUMBER to each KWARG
     #read = buildThread(read, clicrud, listofcommands="commands.txt", method='telnet', fileoutput=True, fileformat='string',\
     #                   username="admin", host="192.168.10.52", enable="Passw0rd", password="Passw0rd",type='icx6610')
@@ -58,26 +58,32 @@ if __name__ == '__main__':
     # Generic usage - this works for MLX, CER_CES. Change ports and methods between 'telnet' and 'ssh'.
     #read = buildThread(read, clicrud, command="show version", method='ssh', fileoutput=True, fileformat='string',\
     #                   username="admin", host="192.0.2.2", enable="Passw0rd", password="Passw0rd")
-    
+
     #read = buildThread(read, clicrud, command="show version", method='ssh',\
     #                username="admin", host="192.0.2.2", enable="Passw0rd", password="Passw0rd")
 
     # delay=X - this is the delay between each command in a list being retrieved. Adjust this to keep CPU activity low
     read1 = buildThread(read, clicrud, listofcommands="commands.txt", fileoutput=True, fileformat='string', method='telnet',\
                     username="admin", host="192.168.10.52", password="Passw0rd", enable="Passw0rd", type="icx6610", delay=0.5)
-    
-    read2 = buildThread(read, clicrud, command="show version", fileoutput=True, fileformat='string', method='ssh',\
-                    username="admin", host="192.0.2.1", password="Passw0rd", enable="Passw0rd", type="generic", delay=0.5)
+
+    read2 = buildThread(read, clicrud, listofcommands="commands.txt", fileoutput=True, fileformat='string', method='telnet',\
+                    username="admin", host="192.168.10.52", password="Passw0rd", enable="Passw0rd", type="generic", delay=0.5)
 
     # Start does multiple things. Adds the function to the thread list, start processes and enters a loop state
-    # if one has been called for via useage of the CLI script    
+    # if one has been called for via useage of the CLI script
+
+
+    clicrud.parallel = True
     clicrud.start(read1, read2)
-    
+
+
+
+
     # This one returns a dict where key = command and output= list of output lines
     #print read.output()
     # This one returns a decorated prettier string
     #print read.prettyOutput()
-    
+
     # This does not immediately stop anything. It stops if the CLI loop exits
     clicrud.stop()
-    
+

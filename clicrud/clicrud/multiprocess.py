@@ -66,10 +66,7 @@ class buildThread(object):
     
     @property
     def ranonce(self):
-        if self._ranonce == False:
-            self._ranonce = self._ranonceq.get(timeout=600)
-        return self._ranonce
-        
+        return self._ranonceq.get(timeout=1800)
         
     def getPID(self):
         return self._t.pid

@@ -36,7 +36,7 @@ def read(queue, finq, ranonceq, **kwargs):
     _kwargs = {}
     _kwargs = kwargs
     _output_dict = {}
-    _ranonce = False
+    #_ranonce = False
     
     # THIS IS WHERE WE READ IN THE COMMANDS
     for key in _kwargs:
@@ -48,7 +48,7 @@ def read(queue, finq, ranonceq, **kwargs):
                     _command_list.append(key1)
             if key == 'listofcommands':
                 try:
-                    _command_file = open(_kwargs.get('listofcommands'))
+                    _command_file = open(_kwargs.get('listofcommands'),'r')
                     _output = _command_file.readlines()
                     _command_file.close()
                     for line in _output:
@@ -80,9 +80,10 @@ def read(queue, finq, ranonceq, **kwargs):
             time.sleep(_kwargs['delay'])
     
     # Sets the ranonce bool if triggered once
-    if not _ranonce:
-        _ranonce = True
-        ranonceq.put(True)
+    #if not _ranonce:
+    #    _ranonce = True
+    #    ranonceq.put(True)
+    ranonceq.put(True)
     
     queue.put(_output_dict)
     
