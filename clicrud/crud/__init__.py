@@ -30,12 +30,13 @@ DEVICES = {
 # queue = output queue
 # finq = finished queue ('completed_run')
 # guiq = GUI Q for scriping. Send 1 for busy, 0 for free
-def read(queue, finq, **kwargs):
+def read(queue, finq, ranonceq, **kwargs):
     _cli_input = "['command', 'commands', 'listofcommands']"
     _command_list = []
     _kwargs = {}
     _kwargs = kwargs
     _output_dict = {}
+    _ranonce = False
     
     # THIS IS WHERE WE READ IN THE COMMANDS
     for key in _kwargs:
@@ -77,6 +78,11 @@ def read(queue, finq, **kwargs):
             sys.stdout.flush()
         if _kwargs.has_key('delay'):
             time.sleep(_kwargs['delay'])
+    
+    # Sets the ranonce bool if triggered once
+    if not _ranonce:
+        _ranonce = True
+        ranonceq.put(True)
     
     queue.put(_output_dict)
     

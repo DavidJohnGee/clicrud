@@ -122,18 +122,30 @@ class setup(object):
     def main_loop(self, continuous):
         main_loop = True
         free_to_write = True
+        _all_ran_once = True
         while main_loop:
             try:
-                # It is expected that we need to sleep post the run once
-                _SLEEP_ACCUM = 0
-                if continuous:
-                    while _SLEEP_ACCUM < self._SLEEP:
-                        sleep(_NAP)
-                        _SLEEP_ACCUM += _NAP
-                # this is the loop that creates the threads and joins them together
+                # We only want to star the main timing cycle once the job has run at least once.
+                # Else we face overlapping jobs
                 for _idx, _t in enumerate(self._thread_list):
-                    #print "Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t)
-                    _t.run()
+                    if _t.ranonce:
+                        _all_ran_once = True
+                    else:
+                        _all_ran_once = False
+                
+                sleep(0.2)
+                        
+                if _all_ran_once:
+                    # It is expected that we need to sleep post the run once
+                    _SLEEP_ACCUM = 0
+                    if continuous:
+                        while _SLEEP_ACCUM < self._SLEEP:
+                            sleep(_NAP)
+                            _SLEEP_ACCUM += _NAP
+                    # this is the loop that creates the threads and joins them together
+                    for _idx, _t in enumerate(self._thread_list):
+                        #print "Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t)
+                        _t.run()
     
                 
             except KeyboardInterrupt:

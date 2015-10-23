@@ -63,12 +63,15 @@ if __name__ == '__main__':
     #                username="admin", host="192.0.2.2", enable="Passw0rd", password="Passw0rd")
 
     # delay=X - this is the delay between each command in a list being retrieved. Adjust this to keep CPU activity low
-    read = buildThread(read, clicrud, listofcommands="commands.txt", fileoutput=True, fileformat='string', method='telnet',\
-                    username="admin", host="192.168.10.52", password="Passw0rd", enable="Passw0rd", type="generic", delay=0.5)
+    read1 = buildThread(read, clicrud, listofcommands="commands.txt", fileoutput=True, fileformat='string', method='telnet',\
+                    username="admin", host="192.168.10.52", password="Passw0rd", enable="Passw0rd", type="icx6610", delay=0.5)
+    
+    read2 = buildThread(read, clicrud, command="show version", fileoutput=True, fileformat='string', method='ssh',\
+                    username="admin", host="192.0.2.1", password="Passw0rd", enable="Passw0rd", type="generic", delay=0.5)
 
     # Start does multiple things. Adds the function to the thread list, start processes and enters a loop state
     # if one has been called for via useage of the CLI script    
-    clicrud.start(read)
+    clicrud.start(read1, read2)
     
     # This one returns a dict where key = command and output= list of output lines
     #print read.output()

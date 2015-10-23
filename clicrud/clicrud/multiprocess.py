@@ -26,8 +26,11 @@ class buildThread(object):
         self._kwargs['setup'] = clicrud
         self._q = Queue()
         self._finq = Queue()
+        self._ranonceq = Queue()
         self._target = target
         self._clicrud = clicrud
+        self._ranonce = False
+
     
     def __str__(self):
         return str(self._kwargs)
@@ -48,7 +51,7 @@ class buildThread(object):
         return self._finq.get(timeout=600)
     
     def start(self):
-        self._t = Process(target=self._target, args=(self._q, self._finq,), kwargs=self._kwargs,)
+        self._t = Process(target=self._target, args=(self._q, self._finq, self._ranonceq), kwargs=self._kwargs,)
         self._t.start()
             
     
@@ -60,6 +63,12 @@ class buildThread(object):
     
     def run(self):
         self._t.run()
+    
+    @property
+    def ranonce(self):
+        if self._ranonce == False:
+            self._ranonce = self._ranonceq.get(timeout=600)
+        return self._ranonce
         
         
     def getPID(self):
