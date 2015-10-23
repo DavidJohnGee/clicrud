@@ -75,6 +75,8 @@ def read(queue, finq, **kwargs):
         if _kwargs['setup']._splash == True:
             sys.stdout.write("\r[%4s/%4s] Complete - " % (len(_command_list), index+1) + time.strftime("%d-%m-%Y") + time.strftime("-%H:%M:%S"))
             sys.stdout.flush()
+        if _kwargs.has_key('delay'):
+            time.sleep(_kwargs['delay'])
     
     queue.put(_output_dict)
     

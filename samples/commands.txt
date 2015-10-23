@@ -1,2 +1,4 @@
 show cpu 
 show version
+show clock
+show stack
