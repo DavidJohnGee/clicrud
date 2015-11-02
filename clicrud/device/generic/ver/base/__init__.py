@@ -250,7 +250,7 @@ class ssh(object):
                 _opts = kwargs['setup']._options
                 _args['splash'] = kwargs['setup']._splash
                 _args['period'] = _opts.period
-                _args['loop'] = _opts.loopq
+                _args['loop'] = _opts.loop
         else:
             _args['splash'] = False
 
