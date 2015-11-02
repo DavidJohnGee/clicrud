@@ -18,6 +18,7 @@ limitations under the License.
 
 import os
 
+
 def getpid():
     _strPID = ""
     if hasattr(os, 'getpid'):  # only available on Unix
@@ -27,7 +28,7 @@ def getpid():
 
 def cls():
     OS = {
-        'posix' : 'clear',
-        'nix' : 'cls'
+        'posix': 'clear',
+        'nix': 'cls'
     }
     os.system(OS.get(os.name))

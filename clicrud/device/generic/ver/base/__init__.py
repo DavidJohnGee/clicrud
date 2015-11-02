@@ -15,7 +15,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import paramiko, time, telnetlib, io, logging, sys, os
+import paramiko
+import time
+import telnetlib
+import io
+import logging
+import sys
+import os
+
 
 class telnet(object):
     def __init__(self, **kwargs):
@@ -23,7 +30,7 @@ class telnet(object):
         _opts = {}
         self._error = False
         _t_args = kwargs
-        if _t_args.get('setup'):    
+        if _t_args.get('setup'):
             if kwargs['setup'] != None:
                 _opts = kwargs['setup']._options
                 _args['splash'] = kwargs['setup']._splash
@@ -31,29 +38,36 @@ class telnet(object):
                 _args['loop'] = _opts.loop
         else:
             _args['splash'] = False
-        
+
         _args.update(_t_args)
-        
-        
-        if _args.has_key('port'):
+
+        # PEP8 fix
+        # if _args.has_key('port'):
+        if "port" in _args:
             pass
         else:
             _args['port'] = 23
-            
+
         # Make these global per instance
         self._args = _args
-        
+
         _temp_data = ""
         try:
-            self.client = telnetlib.Telnet(str(_args['host']), _args['port'], 10)
+            self.client = telnetlib.Telnet(str(_args['host']),
+                                           _args['port'], 10)
+
         except Exception, err:
-            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
-            logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
+            sys.stderr.write('\nERROR for host: %s - %s\n' %
+                             (_args['host'], str(err)))
+
+            logging.error('ERROR for host %s - %s\n:' %
+                          (_args['host'], err))
+
             self._error = True
             return
-            
-        
-        # Let's detect whether authentication or enable modes for auth are configured
+
+        # Let's detect whether authentication or enable modes
+        # for auth are configured
         _detect = True
         _detect_buffer = ""
         _timer = 0
@@ -72,19 +86,22 @@ class telnet(object):
                 _timer += 1
                 if _timer >= 30:
                     _detect = False
-                    
+
         except Exception, err:
-            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
-            logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
+            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],
+                                                              str(err)))
+
+            logging.error('ERROR for host %s - %s\n:' % (_args['host'], err))
             self._error = True
             return
-        
+
         # Now we know whether we need to send a username or enable password
         if self._send_username:
             self.client.write("%s\r" % _args['username'])
             self.client.read_until("Password:")
             self.client.write(_args['password'] + "\r")
-            # Now we need to read some until we get > or # to determine enable requirement
+            # Now we need to read some until we get > or #
+            # to determine enable requirement
             _detect = True
             _detect_buffer = ""
             _timer = 0
@@ -117,12 +134,15 @@ class telnet(object):
                         _detect = False
 
             except Exception, err:
-                sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
-                logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
+                sys.stderr.write('\nERROR for host: %s - %s\n' %
+                                 (_args['host'], str(err)))
+
+                logging.error('ERROR for host %s - %s\n:' %
+                              (_args['host'], err))
+
                 self._error = True
                 return
 
-        
         if self._send_enable:
             _detect = True
             _detect_buffer = ""
@@ -146,10 +166,10 @@ class telnet(object):
                         self.client.write(_args['enable'] + "\r")
                         # Takes in to account exec banner
                         _error_check = self.client.read_until("#", timeout=1)
-                        
+
                         if "incorrect" in _error_check:
                             raise Exception('Incorrect authentication details')
-                        
+
                         # Do this to get a clean prompt
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
@@ -157,21 +177,25 @@ class telnet(object):
                         self.client.write("skip\r")
                         self.client.read_until("mode")
                         self.client.read_until(self._hostname)
+
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 30:
                         _detect = False
-                        #self.client.close()
+                        # self.client.close()
             except Exception, err:
-                sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
-                logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
+                sys.stderr.write('\nERROR for host: %s - %s\n' %
+                                 (_args['host'], str(err)))
+                logging.error('ERROR for host %s - %s\n:' %
+                              (_args['host'], err))
+
                 self._error = True
                 return
-        
+
     @property
     def hostname(self):
         return self._hostname
-    
+
     def read(self, command, **kwargs):
         """
         Returns a list with each entry representing one line of output
@@ -183,23 +207,26 @@ class telnet(object):
         self._temp_data = io.BytesIO(self._read_data)
         self._lines = self._temp_data.readlines()
         return_list = []
+
         for line in self._lines:
             if line != '\r\n' and line != self._hostname:
                 line = line.translate(None, '\r\n')
                 if line != command:
                     return_list.append(line)
-        if _args.has_key('return_type'):
+
+        # PEP 8 fix
+        # if _args.has_key('return_type'):
+        if "return_type" in _args:
             if _args.get('return_type') == 'string':
                 for line in return_list:
                     _string += line + '\n'
             return _string[:-1]
-        else:    
+        else:
             return return_list
-        
-        
+
     def close(self):
         self.client.close()
-        
+
     @property
     def connected(self):
         if self.client.sock:
@@ -209,43 +236,48 @@ class telnet(object):
     def protocol(self):
         return self._args.get('method')
 
+
 class ssh(object):
     def __init__(self, **kwargs):
-        
+
         paramiko.util.log_to_file('/tmp/clicrud.log')
         _args = {}
         _opts = {}
         self._error = False
         _t_args = kwargs
-        if _t_args.get('setup'):    
+        if _t_args.get('setup'):
             if kwargs['setup'] != None:
                 _opts = kwargs['setup']._options
                 _args['splash'] = kwargs['setup']._splash
                 _args['period'] = _opts.period
-                _args['loop'] = _opts.loop
+                _args['loop'] = _opts.loopq
         else:
             _args['splash'] = False
-        
+
         _args.update(_t_args)
-        
+
         # Check for port value. If it doesn't exist, default to 22
-        if _args.has_key('port'):
+        # PEP8 fix
+        # if _args.has_key('port'):
+        if "port" in _args:
             pass
         else:
             _args['port'] = 22
-        
-        # Make these global per instance    
+
+        # Make these global per instance
         self._args = _args
-        
         _temp_data = ""
 
-        #key = paramiko.RSAKey(data=base64.decodestring('AAAAB3NzaC1yc2EAAAADAQABAAABAQDRZpL6HlxRm+hqaKm7sUHsxXb3jHneohrAI+uFmph5RfwHQyERxOFjszJVfAK6DqX1MVlpAUZrDTZbnXd5+fowEn65w7FWs0lwxEh+Pz7363wxfQneb+vHtk4bXY3lVoQjD+lbX4XUGpXYSAfe2fNbrsKSh9DWxQlng4Z4aeDiVAoeEKO034TZh6/fSo85jjOR2hbqm2FXTHTelonhRXRFIx1+KuSeG05oITp4AKSjo5tg9syjhaYGF7hXeA3cASwY7By0lIBPrSPDUi0bi/1mJHqv94yNLWh4wj5SFgHXNm6vZPB9YKLGRyEBF+XyP7QE3Y3fZdRGV2vq66BivZrx'))
         self.client = paramiko.SSHClient()
         self.client.load_system_host_keys()
-        #self.client.get_host_keys().add(_args['host'], 'ssh-rsa', key)
+        # self.client.get_host_keys().add(_args['host'], 'ssh-rsa', key)
         try:
-            self.client.connect(_args['host'], username=_args['username'], password=_args['password'], port=_args['port'], timeout=10)
-    
+            self.client.connect(_args['host'],
+                                username=_args['username'],
+                                password=_args['password'],
+                                port=_args['port'],
+                                timeout=10)
+
             self.client_conn = self.client.invoke_shell()
             # Check for mode (enable/no-enable)
             time.sleep(0.1)
@@ -255,11 +287,11 @@ class ssh(object):
                 self.output = self.blocking_recv()
                 self.client_conn.send(_args['enable'] + "\n")
                 self.output = self.blocking_recv()
-                
+
             # Check for error
             if "incorrect" in self.output:
                 raise Exception('Incorrect authentication details')
-                
+
             # We should be in enable at this point
             if "#" in self.output:
                 self.client_conn.send("\n")
@@ -267,21 +299,23 @@ class ssh(object):
                 self._hostname = self.output.translate(None, '\r\n')
                 self.client_conn.send("skip\n")
                 self.output = self.blocking_recv()
-        
+
         except Exception, err:
-            sys.stderr.write('\nERROR for host: %s - %s\n' % (_args['host'],str(err)))
-            logging.error('ERROR for host %s - %s\n:' % (_args['host'],err))
+            sys.stderr.write('\nERROR for host: %s - %s\n' %
+                             (_args['host'], str(err)))
+
+            logging.error('ERROR for host %s - %s\n:' % (_args['host'], err))
             self._error = True
             return
-        
+
     @property
     def hostname(self):
         return self._hostname
-    
+
     def blocking_recv(self, *args):
         _output = ""
         _block = True
-        
+
         while _block:
             if not args:
                 _block = False
@@ -295,7 +329,7 @@ class ssh(object):
                     if _arg in _output:
                         _block = False
         return _output
-    
+
     def read(self, command, **kwargs):
             _args = kwargs
             _returnlist = []
@@ -307,33 +341,36 @@ class ssh(object):
             while self.count < 2:
                 stream.readline()
                 self.count += 1
-            # At this point, we're to the top of the stream and beyond the hostname and \r\n\r\n mess
-            _lines =  stream.readlines()
+            # At this point, we're to the top of the stream and
+            # beyond the hostname and \r\n\r\n mess
+            _lines = stream.readlines()
             for line in _lines:
                 if line != '\r\n' and line != self._hostname:
                     line = line.translate(None, '\r\n')
                     if line != command:
                         _returnlist.append(line)
-            if _args.has_key('return_type'):
+            # PEP8 fix
+            # if _args.has_key('return_type'):
+            if "return_type" in _args:
                 if _args.get('return_type') == 'string':
                     for line in _returnlist:
                         _string += line + '\n'
                 return _string[:-1]
-            else:    
+            else:
                 return _returnlist
 
-        
-        
     def close(self):
         self.client.close()
-    
+
     @property
     def connected(self):
-        if self.client.get_transport().is_active() and self.client.get_transport() is not None:
+        if self.client.get_transport().is_active() and \
+                self.client.get_transport() is not None:
+
             return True
         else:
             return False
-        
+
     @property
     def protocol(self):
         return self._args.get('method')

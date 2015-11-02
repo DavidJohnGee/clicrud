@@ -16,7 +16,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import os, sys, getpass, logging, psutil
+import os
+import sys
+import getpass
+import logging
+import psutil
 
 from multiprocessing import Queue
 from multiprocess import buildThread
@@ -28,188 +32,205 @@ _NAP = 1
 # Default for sleep
 _SLEEP_DEFAULT = 600
 
+
 class setup(object):
-    
+
     _pidfile = "/tmp/icx_collection.pid"
     _log = "/tmp/clicrud.log"
-    
+
     def __init__(self, splash):
         # Entry point for __main__
         self._thread_list = []
-        
+
         # PID List
         self._pid_list = []
-        
+
         self.parallel = True
-        
+
         # Setup logging
-        logging.basicConfig(filename=self._log,level=logging.DEBUG)
-        
+        logging.basicConfig(filename=self._log, level=logging.DEBUG)
+
         # Deal with init args
         (self._options, self._args) = self.setup_options()
         self._splash = splash
-        
+
         # Go and get the PID
         self.createPIDfile(self._pidfile, str(getpid()))
         logging.info("Created PID File %s" % self._pidfile)
         self._pid_list.append(os.getpid())
-        
-        # Now we deal with user facing splash screen    
+
+        # Now we deal with user facing splash screen
         if self._splash:
             self.splash_screen()
-        
-        if not self._options.period == None:
-            self._SLEEP =int(self._options.period)
+
+        if self._options.period is not None:
+            self._SLEEP = int(self._options.period)
         else:
             self._SLEEP = _SLEEP_DEFAULT
 
-            
     def createPIDfile(self, _pidfile, PIDInfo):
         try:
-            _f = open(_pidfile, 'w')   
-            _f.write(PIDInfo)   
+            _f = open(_pidfile, 'w')
+            _f.write(PIDInfo)
             _f.close()
-        except: 
+        except:
             logging.error("Could not open file for PID")
-            
+
     def getpasswords(self):
-        
+
         for thread in self._thread_list:
-            
+
             if thread._kwargs['password'] == "":
                 print "Input password for device %s: " % thread._kwargs['host']
                 thread._kwargs['password'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
-                    
+
             if thread._kwargs['enable'] == "":
                 print "Input password for device %s: " % thread._kwargs['host']
                 thread._kwargs['enable'] = getpass.getpass()
                 if self._splash:
                     self.splash_screen()
 
-    
     def setup_options(self):
-        parser = OptionParser(usage="python icx_diagnose --username=\"name\" --hostname=\"192.0.2.1\" --method=\"telnet|ssh\" OPTIONAL --runonce --password", version="alpha 1.0")
-        parser.add_option("-t", "--timeperiod", dest="period", help="Time period between data collection in seconds", metavar="Time", type="string")
-        parser.add_option("-c", "--continuous", dest="loop", help="If continous is set, then this library will execute in a loop governed by -t", metavar="Continous", action="store_true")
-        return parser.parse_args()    
-    
+        parser = OptionParser(usage="python icx_diagnose --username=\"name\" \
+                                     --hostname=\"192.0.2.1\" \
+                                     --method=\"telnet|ssh\" OPTIONAL \
+                                     --runonce --password",
+                              version="alpha 1.0")
+
+        parser.add_option("-t", "--timeperiod", dest="period",
+                          help="Time period between data \
+                                collection in seconds",
+                          metavar="Time", type="string")
+
+        parser.add_option("-c", "--continuous", dest="loop",
+                          help="If continous is set, then this library \
+                                will execute in a loop governed by -t",
+                          metavar="Continous", action="store_true")
+
+        return parser.parse_args()
+
     def splash_screen(self):
         cls()
         print 80*"*"
         print "\t\tB R O C A D E\t\t C L I C R U D\t\tv0.1"
         print 80*"*"
         print "Please hit CTRL+C to terminate\n"
-    
+
     def splash_prepare_to_launch(self):
         if not self.parallel:
             print "In non-parallel mode"
         print "\n------Progress------\n"
-    
+
     def start_processes(self):
         # TODO: Insert parallel and linear handling of tasks
         for _idx, _t in enumerate(self._thread_list):
             _t.start()
             self._pid_list.append(_t.getPID())
-            logging.info("Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
-            # Uncomment out if we want to block the main thread until at least one pass has completed.
+            logging.info("Run thread %s with pid %s with kwargs %s" %
+                         (_idx+1, _t.getPID(), _t))
+            # Uncomment out if we want to block the main thread until
+            # at least one pass has completed.
             if not self.parallel:
                 _t.ranonce
-                
-    
+
     def run_processes(self):
         for _idx, _t in enumerate(self._thread_list):
             if _t.is_alive():
                 _t.run()
                 self._pid_list.append(_t.getPID())
-                logging.info("Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
-    
+                logging.info("Run thread %s with pid %s with kwargs %s" %
+                             (_idx+1, _t.getPID(), _t))
+
     def main_loop(self, continuous):
-        # TODO: Insert parallel and linear handling of tasks
         main_loop = True
         free_to_write = True
         _all_ran_once = False
         while main_loop:
-            if self.parallel == False:
+            if self.parallel is False:
                 try:
-                    
+
                     _SLEEP_ACCUM = 0
                     if continuous:
                         while _SLEEP_ACCUM < self._SLEEP:
                             sleep(_NAP)
                             _SLEEP_ACCUM += _NAP
-                    # this is the loop that creates the threads and joins them together
+                    # this is the loop that creates the threads and
+                    # joins them together
                     for _idx, _t in enumerate(self._thread_list):
-                        #print "Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t)
+                        # print "Run thread %s with pid %s with kwargs %s" %
+                        #      (_idx+1, _t.getPID(), _t)
                         _t.run()
                         while not _t.ranonce:
                             sleep(0.2)
-        
-                    
+
                 except KeyboardInterrupt:
                     print "\b\nCtrl C - Stopping server"
                     print "Stopping jobs %s..." % (self._pid_list)
-                    #for p in self._thread_list:
+                    # for p in self._thread_list:
                     #    p._t.terminate()
-                    #sys.exit(1)
+                    # sys.exit(1)
                     main_loop = False
-            
+
             # PARALLEL OPERATION HERE
             # IF parallel = True
-            if self.parallel == True:
+            if self.parallel is True:
                 try:
-                    
-                    # We only want to star the main timing cycle once the job has run at least once.
-                    # Else we face overlapping jobs
+
+                    # We only want to star the main timing cycle once the job
+                    # has run at least once. Else we face overlapping jobs
+
                     if not _all_ran_once:
                         for _idx, _t in enumerate(self._thread_list):
-                            #Wait until we've got our True signal from ranonce
+                            # Wait until we've got our True signal from ranonce
                             _t.ranonce
-                        
+
                         _all_ran_once = True
-                        
+
                     # It is expected that we need to sleep post the run once
                     _SLEEP_ACCUM = 0
                     if continuous:
                         while _SLEEP_ACCUM < self._SLEEP:
                             sleep(_NAP)
                             _SLEEP_ACCUM += _NAP
-                    # this is the loop that creates the threads and joins them together
+                    # this is the loop that creates the threads and joins
+                    # them together
                     for _idx, _t in enumerate(self._thread_list):
-                        #print "Run thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t)
+                        # print "Run thread %s with pid %s with kwargs %s"
+                        #        % (_idx+1, _t.getPID(), _t)
                         _t.run()
-        
-                    
+
                 except KeyboardInterrupt:
                     print "\b\nCtrl C - Stopping server"
                     print "Stopping jobs %s..." % (self._pid_list)
-                    #for p in self._thread_list:
+                    # for p in self._thread_list:
                     #    p._t.terminate()
-                    #sys.exit(1)
+                    # sys.exit(1)
                     main_loop = False
-                
+
     def start(self, *args):
         for arg in args:
-            self._thread_list.append(arg)       
-            
+            self._thread_list.append(arg)
+
         # We only need to do this if we're running a script
         self.getpasswords()
-        
 
         if not self._options.loop:
             self.splash_prepare_to_launch()
             # Start the multi-processing off!
             self.start_processes()
-        ## If you only want to use library programming, then don't worry about this.
+
+        # If you only want to use library programming, then don't worry
+        # about this.
         if self._options.loop:
-            print "Entering periodic refresh loop of : %d seconds" % (self._SLEEP)
+            print "Entering periodic refresh loop of : %d seconds" \
+                   % (self._SLEEP)
             self.splash_prepare_to_launch()
             # Start the multi-processing off!
             self.start_processes()
             self.main_loop(True)
-        
-                
+
     def stop(self):
         StopCheck = True
         NumProcs = len(self._thread_list)
@@ -220,12 +241,14 @@ class setup(object):
                 if _qmsg == 'completed_run':
                     _t.stop()
                     ProcsStopped += 1
-                    logging.info("Stopped thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
+                    logging.info("Stopped thread %s with pid %s with kwargs \
+                                 %s" % (_idx+1, _t.getPID(), _t))
                 if _qmsg == 'error':
                     _t.stop()
-                    logging.info("Error on thread %s with pid %s with kwargs %s" % (_idx+1, _t.getPID(), _t))
+                    logging.info("Error on thread %s with pid %s with kwargs \
+                                 %s" % (_idx+1, _t.getPID(), _t))
                     StopCheck = False
-                
+
                 if NumProcs == ProcsStopped:
                     StopCheck = False
             sleep(0.5)

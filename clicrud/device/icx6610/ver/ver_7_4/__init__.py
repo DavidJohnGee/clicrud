@@ -15,12 +15,18 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-import paramiko, time, telnetlib, io
+import paramiko
+import time
+import telnetlib
+import io
+
 from clicrud.device.icx6610.ver.base import telnet as telnetBase
-from clicrud.device.icx6610.ver.base import ssh as sshBase 
+from clicrud.device.icx6610.ver.base import ssh as sshBase
+
 
 class telnet(telnetBase):
     pass
+
 
 class ssh(sshBase):
     pass
