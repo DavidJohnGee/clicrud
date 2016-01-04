@@ -268,6 +268,8 @@ class ssh(object):
         _temp_data = ""
         self.client = paramiko.SSHClient()
         self.client.load_system_host_keys()
+        # Added 4th Jan 2016
+        self.client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         # self.client.get_host_keys().add(_args['host'], 'ssh-rsa', key)
         try:
             self.client.connect(_args['host'],

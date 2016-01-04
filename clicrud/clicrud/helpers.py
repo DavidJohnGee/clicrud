@@ -29,6 +29,7 @@ def getpid():
 def cls():
     OS = {
         'posix': 'clear',
-        'nix': 'cls'
+        'nix': 'cls',
+        'nt': 'cls'
     }
     os.system(OS.get(os.name))
