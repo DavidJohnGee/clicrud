@@ -236,7 +236,9 @@ class telnet(object):
 
 class ssh(object):
     def __init__(self, **kwargs):
-        paramiko.util.log_to_file('/tmp/clicrud.log')
+        # This is unixy code. Make Windows happy.
+        # paramiko.util.log_to_file('/tmp/clicrud.log')
+        paramiko.util.log_to_file('clicrud.log')
         _args = {}
         _opts = {}
         self._error = False

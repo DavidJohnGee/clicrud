@@ -34,9 +34,12 @@ _SLEEP_DEFAULT = 600
 
 
 class setup(object):
+    # This is a little unixy. Make Windows happy.
+    # _pidfile = "/tmp/icx_collection.pid"
+    # _log = "/tmp/clicrud.log"
 
-    _pidfile = "/tmp/icx_collection.pid"
-    _log = "/tmp/clicrud.log"
+    _pidfile = "icx_collection.pid"
+    _log = "clicrud.log"
 
     def __init__(self, splash):
         # Entry point for __main__

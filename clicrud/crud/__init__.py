@@ -107,7 +107,7 @@ def read(queue, finq, ranonceq, **kwargs):
         # Create a filename on hostname+date
         # Output the _output_dict to it in the right format
         _filename = _transport.hostname
-        _filename += time.strftime("%d-%m-%Y") + time.strftime("-%H:%M:%S")
+        _filename += time.strftime("%d-%m-%Y-") + time.strftime("-%H-%M-%S")
 
         try:
             f = open(_filename, 'w')
