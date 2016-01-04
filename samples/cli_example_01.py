@@ -83,7 +83,7 @@ if __name__ == '__main__':
 
     read2 = buildThread(read, clicrud, listofcommands="commands.txt",
                         fileoutput=True, fileformat='string',
-                        method='telnet', username="admin",
+                        method='ssh', username="admin",
                         host="192.168.10.52", password="Passw0rd",
                         enable="Passw0rd", type="generic", delay=0.5)
 
