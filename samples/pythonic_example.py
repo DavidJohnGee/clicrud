@@ -28,8 +28,8 @@ from clicrud.device.generic import generic
 # transport = icx6610(host="192.168.10.52", username="admin",
 #                     password="Passw0rd")
 
-transport = generic(host="192.0.2.1", username="admin", enable="Passw0rd",
-                    port=22, method="ssh", password="Passw0rd")
+transport = generic(host="192.0.2.1", username="admin", enable="Passw0rd1",
+                    port=22, method="ssh", password="Passw0rd1")
 
 # Note - no need to enter 'skip'. Pagination is turned off by code.
 # Just worry about the command!

@@ -21,6 +21,7 @@ import sys
 import getpass
 import logging
 import psutil
+import copy
 
 from multiprocessing import Queue
 from multiprocess import buildThread
@@ -31,6 +32,21 @@ from time import sleep
 _NAP = 1
 # Default for sleep
 _SLEEP_DEFAULT = 600
+
+
+class _setup(object):
+    """This class does nothing more than instantiate the setup() class
+        and provide bound copies via the get_setup() method.
+        Why do this you ask? Me too. It's a Windows issue.
+        Pickling the setup instance for each multiprocess goes wrong.
+    """
+
+    def __init__(self, **kwargs):
+        self.setup = setup(**kwargs)
+        return
+
+    def get_setup(self):
+        return copy.deepcopy(self.setup)
 
 
 class setup(object):

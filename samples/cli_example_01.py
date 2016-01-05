@@ -15,7 +15,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 """
 
-from clicrud.clicrud.setup import setup
+from clicrud.clicrud.setup import _setup
 from clicrud.clicrud.multiprocess import buildThread
 from clicrud.crud import read
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # clicrud = setup(splash=False, getpasswords=False)
 
     # This one suites an interactive script
-    clicrud = setup(splash=True)
+    clicrud = _setup(splash=True)
 
     # This is where you build your threads
     # Options for read:
@@ -75,15 +75,18 @@ if __name__ == '__main__':
     # delay=X - this is the delay between each command in a list being
     # retrieved. Adjust this to keep CPU activity low
 
-    read1 = buildThread(read, clicrud, listofcommands="commands.txt",
+
+    cer_ces = buildThread(read, clicrud.get_setup(),
+                      listofcommands="commands.txt",
+                      fileoutput=True, fileformat='string',
+                      method='ssh', username="admin",
+                      host="192.0.2.2", password="Passw0rd",
+                      enable="Passw0rd", type="generic", delay=0.5)
+
+    icx6610_telnet = buildThread(read, clicrud.get_setup(),
+                        listofcommands="commands.txt",
                         fileoutput=True, fileformat='string',
                         method='telnet', username="admin",
-                        host="192.168.10.52", password="Passw0rd",
-                        enable="Passw0rd", type="icx6610", delay=0.5)
-
-    read2 = buildThread(read, clicrud, listofcommands="commands.txt",
-                        fileoutput=True, fileformat='string',
-                        method='ssh', username="admin",
                         host="192.168.10.52", password="Passw0rd",
                         enable="Passw0rd", type="generic", delay=0.5)
 
@@ -91,8 +94,8 @@ if __name__ == '__main__':
     # start processes and enters a loop state if one has been called
     # for via useage of the CLI script
 
-    clicrud.parallel = True
-    clicrud.start(read1, read2)
+    clicrud.setup.parallel = True
+    clicrud.setup.start(cer_ces, icx6610_telnet)
 
     # This returns a dict where key = command and output= list of output lines
     # print read.output()
@@ -100,4 +103,4 @@ if __name__ == '__main__':
     # print read.prettyOutput()
 
     # This does not immediately stop anything. It stops if the CLI loop exits
-    clicrud.stop()
+    clicrud.setup.stop()

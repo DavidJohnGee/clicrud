@@ -283,8 +283,10 @@ class ssh(object):
 
             self.client_conn = self.client.invoke_shell()
             # Check for mode (enable/no-enable)
-            time.sleep(0.1)
+
+            time.sleep(0.5)
             self.output = self.blocking_recv()
+
             if ">" in self.output:
                 self.client_conn.send("en\n")
                 self.output = self.blocking_recv()
@@ -325,6 +327,7 @@ class ssh(object):
             while not self.client_conn.recv_ready():
                 time.sleep(0.1)
             while self.client_conn.recv_ready():
+                print "[DEBUG] Receving data..."
                 time.sleep(0.1)
                 _output += self.client_conn.recv(1000000)
             if args:
