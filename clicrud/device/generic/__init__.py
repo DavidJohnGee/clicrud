@@ -58,9 +58,3 @@ class generic(object):
     @property
     def err(self):
         return self._transport._error
-
-    # TODO: Add platform retrieval code
-    @property
-    def platform(self):
-        self._platform = "icx6610"
-        return "platform: %s", self._platform

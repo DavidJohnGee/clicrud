@@ -44,6 +44,7 @@ class icx6610(object):
 
             transport = baseTelnet(**_args)
             if not transport._error:
+
                 _ver = transport.read("show version | inc SW")
                 for version in METHODS:
                     if any(version in ls for ls in _ver):
@@ -98,3 +99,8 @@ class icx6610(object):
             return True
         else:
             return self._transport._error
+
+
+    @property
+    def attributes(self):
+        return self._transport.attributes.devices
