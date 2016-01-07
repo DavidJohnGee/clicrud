@@ -61,11 +61,15 @@ class icx6610(object):
                         self._device_version = version
                 transport.close()
 
-        if not transport._error:
-            self._transport = METHODS[self._device_version][
+        try:
+            if not transport._error:
+                self._transport = METHODS[self._device_version][
                                       _args.get('method')](**_args)
-        else:
-            self._transport = None
+            else:
+                self._transport = None
+        except Exception, err:
+            print "This might not an ICX6110. Issue detecting and provisioning version."
+            exit(1)
 
     @property
     def connected(self):

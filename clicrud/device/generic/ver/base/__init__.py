@@ -327,7 +327,6 @@ class ssh(object):
             while not self.client_conn.recv_ready():
                 time.sleep(0.1)
             while self.client_conn.recv_ready():
-                print "[DEBUG] Receving data..."
                 time.sleep(0.1)
                 _output += self.client_conn.recv(1000000)
             if args:
@@ -344,7 +343,8 @@ class ssh(object):
             self.output = self.blocking_recv(self._hostname)
             stream = io.BytesIO(self.output)
             self.count = 0
-            while self.count < 2:
+            #FIX: Generic missed the top line off 'show version'. Decreased < 2 to 1.
+            while self.count < 1:
                 stream.readline()
                 self.count += 1
             # At this point, we're to the top of the stream and
