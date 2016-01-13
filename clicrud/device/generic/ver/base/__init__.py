@@ -153,7 +153,7 @@ class telnet(object):
                     _detect_buffer += self.client.read_some()
                     if "#" in _detect_buffer:
                         # Takes in to account exec banner
-                        self.client.read_until("#", timeout=1)
+                        self.client.read_until("#", timeout=1.5)
                         # Do this to get a clean prompt
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
@@ -174,15 +174,21 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-                        self.client.write("skip\r")
-                        self.client.read_until("mode")
-                        self.client.read_until(self._hostname)
+                        # self.client.write("skip\r")
+                        # self.client.read_until("mode")
+                        # self.client.read_until(self._hostname)
 
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 30:
                         _detect = False
                         # self.client.close()
+
+                if _detect is False:
+                    self.client.write("skip\r")
+                    self.client.read_until("mode")
+                    self.client.read_until(self._hostname)
+
             except Exception, err:
                 sys.stderr.write('\nERROR for host: %s - %s\n' %
                                  (_args['host'], str(err)))
@@ -200,9 +206,10 @@ class telnet(object):
         """
         Returns a list with each entry representing one line of output
         """
+
         _string = ""
         _args = kwargs
-        self.client.write("%s\r" % command)
+        self.client.write("%s\r\n" % command)
         self._read_data = self.client.read_until(self._hostname)
         self._temp_data = io.BytesIO(self._read_data)
         self._lines = self._temp_data.readlines()
@@ -304,6 +311,7 @@ class ssh(object):
                 self._hostname = self.output.translate(None, '\r\n')
                 self.client_conn.send("skip\n")
                 self.output = self.blocking_recv()
+                # self.client.close()
 
         except Exception, err:
             sys.stderr.write('\nERROR for host: %s - %s\n' %

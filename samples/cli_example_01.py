@@ -76,14 +76,14 @@ if __name__ == '__main__':
     # retrieved. Adjust this to keep CPU activity low
 
 
-    cer_ces = buildThread(read, clicrud.get_setup(),
+    cer_ces = buildThread(read, clicrud.get_setup,
                       listofcommands="commands.txt",
                       fileoutput=True, fileformat='string',
                       method='ssh', username="admin",
                       host="192.0.2.2", password="Passw0rd",
                       enable="Passw0rd", type="generic", delay=0.5)
 
-    icx6610_telnet = buildThread(read, clicrud.get_setup(),
+    icx6610_telnet = buildThread(read, clicrud.get_setup,
                         listofcommands="commands.txt",
                         fileoutput=True, fileformat='string',
                         method='telnet', username="admin",

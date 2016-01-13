@@ -81,31 +81,36 @@ class _attributes(dict):
             if _devcount < _ndevices:
                 _devcount += 1
 
+
         # This section fills in the hostname
         _tmp = self._transport_converter(
                                     kwargs.get('transport'),
                                     kwargs.get('instance'),
                                     'show running-config | inc hostname')
 
-        _devcount = 1
-        _tmp2 = str(_tmp)
-        _tmp2 = _tmp2.strip()
-        _tmp2 = _tmp2.split(" ")
-        for dev in range(_ndevices):
-            self.devices[_devcount].update({'hostname': _tmp2[1]})
-            if _devcount < _ndevices:
-                _devcount += 1
+        if _tmp:
+            _devcount = 1
+            _tmp2 = str(_tmp)
+            _tmp2 = _tmp2.strip()
+            _tmp2 = _tmp2.split(" ")
+            for dev in range(_ndevices):
+                self.devices[_devcount].update({'hostname': _tmp2[1]})
+                if _devcount < _ndevices:
+                    _devcount += 1
+
+        if not _tmp:
+            self.devices[_devcount].update({'hostname': 'Not set'})
 
         # This section fills in the serial
         _tmp = self._transport_converter(
                                     kwargs.get('transport'),
                                     kwargs.get('instance'),
                                     'show version | inc Serial')
-
         _devcount = 1
         for dev in (_tmp):
             _tmp2 = dev.strip()
             _tmp2 = _tmp2.split(" ")
+            print "[DBG] _tmp2 = " + str(_tmp2)
             self.devices[_devcount].update({'serial': _tmp2[3]})
             if _devcount < _ndevices:
                 _devcount += 1
@@ -284,14 +289,20 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-                        self.client.write("skip\r")
-                        self.client.read_until("mode")
-                        self.client.read_until(self._hostname)
+                        # self.client.write("skip\r")
+                        # self.client.read_until("mode")
+                        # self.client.read_until(self._hostname)
+
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 30:
                         _detect = False
-                        # self.client.close()
+                        # self.client.close()\
+
+                if _detect is False:
+                    self.client.write("skip\r")
+                    self.client.read_until("mode")
+                    self.client.read_until(self._hostname)
 
             except Exception, err:
                 sys.stderr.write('\nERROR for host: %s - %s\n' %

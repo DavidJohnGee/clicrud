@@ -25,6 +25,10 @@ class icx6610(object):
 
     def __init__(self, **kwargs):
         METHODS = {
+            '0': {
+                'telnet': baseTelnet,
+                'ssh': baseSSH,
+                },
             '7.4': {
                 'telnet': clicrud.device.icx6610.ver.ver_7_4.telnet,
                 'ssh': clicrud.device.icx6610.ver.ver_7_4.ssh,
@@ -36,6 +40,8 @@ class icx6610(object):
             }
 
         METHOD_ATTRS = ['telnet', 'ssh']
+
+        self._device_version = '0'
 
         _args = kwargs
 
@@ -68,8 +74,9 @@ class icx6610(object):
                                       _args.get('method')](**_args)
             else:
                 self._transport = None
+
         except Exception, err:
-            print "This might not an ICX6110. Issue detecting and provisioning version."
+            print "This might not be an ICX6110. Issue detecting and provisioning version."
             exit(1)
 
     @property
