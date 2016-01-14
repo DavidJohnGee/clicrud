@@ -411,6 +411,37 @@ class ssh(object):
             else:
                 return _returnlist
 
+    def configure(self, command, **kwargs):
+        """
+        This configuration method inputs a command and waits until it reads
+        it's configuration mode hostname.
+        It also changes mode from priv to conf then back again to priv
+        on exit.
+
+        If kwarg 'save=True' is passed, then it will also commit config
+        changes to memory.
+
+        Returs nothing.
+        """
+
+        _args = kwargs
+        # This allows us to change our read marker for conf mode.
+        self._config_hostname = self._hostname + ' (conf)'
+        # Enter configuration mode
+        self.client_conn.send("%s\n" % "conf t")
+        self.output = self.blocking_recv(self._config_hostname)
+        # and now the command
+        self.client_conn.send("%s\n" % command)
+        self.output = self.blocking_recv(self._config_hostname)
+        # Return to priv mode
+        self.client_conn.send("%s\n" % "exit")
+        self.output = self.blocking_recv(self._hostname)
+        # at this point, we can save if the kwarg has been passed.
+        if _args.get('save') and _args.get('save') is True:
+            self.client_conn.send("%s\n" % "write")
+            self.output = self.blocking_recv(self._hostname)
+        return
+
     def close(self):
         self.client.close()
 
