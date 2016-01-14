@@ -79,9 +79,11 @@ class telnet(object):
                 if "Name:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
+                    logging.info*("[generic/ver/base/__init__.py] Detected username in authentication sequence")
                 if ">" in _detect_buffer:
                     self._send_enable = True
                     _detect = False
+                    logging.info*("[generic/ver/base/__init__.py] Priv mode required")
                 time.sleep(0.1)
                 _timer += 1
                 if _timer >= 30:
@@ -116,6 +118,7 @@ class telnet(object):
                     if ">" in _detect_buffer:
                         self._send_enable = True
                         _detect = False
+                        logging.info*("[generic/ver/base/__init__.py] Priv mode required")
                     if "#" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
@@ -128,6 +131,7 @@ class telnet(object):
                         self.client.write("skip\r")
                         self.client.read_until("mode")
                         self.client.read_until(self._hostname)
+                        logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 10:
@@ -159,6 +163,7 @@ class telnet(object):
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
                         _detect = False
+                        logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
                         break
                     if "Password:" in _detect_buffer:
                         self._send_enable = False
@@ -177,6 +182,7 @@ class telnet(object):
                         # self.client.write("skip\r")
                         # self.client.read_until("mode")
                         # self.client.read_until(self._hostname)
+                        logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
 
                     time.sleep(0.1)
                     _timer += 1
@@ -299,7 +305,7 @@ class ssh(object):
                 self.output = self.blocking_recv()
                 self.client_conn.send(_args['enable'] + "\n")
                 self.output = self.blocking_recv()
-
+                logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
             # Check for error
             if "incorrect" in self.output:
                 raise Exception('Incorrect authentication details')
@@ -311,6 +317,7 @@ class ssh(object):
                 self._hostname = self.output.translate(None, '\r\n')
                 self.client_conn.send("skip\n")
                 self.output = self.blocking_recv()
+                logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
                 # self.client.close()
 
         except Exception, err:

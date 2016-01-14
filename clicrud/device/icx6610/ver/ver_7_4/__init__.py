@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+    #!/usr/bin/env python
 """
 Copyright 2015 Brocade Communications Systems, Inc.
 
@@ -23,10 +23,12 @@ import io
 from clicrud.device.icx6610.ver.base import telnet as telnetBase
 from clicrud.device.icx6610.ver.base import ssh as sshBase
 
+# If any attribute gathering methods need to be changed, import the correct
+# attribute version here and put the right code in to 'override'
 
 class telnet(telnetBase):
-    pass
+    super(telnet, self).get_attributes()
 
 
 class ssh(sshBase):
-    pass
+    super(ssh, self).get_attributes()

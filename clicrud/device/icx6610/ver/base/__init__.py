@@ -21,123 +21,7 @@ import telnetlib
 import io
 import logging
 import sys
-
-
-class _attributes(dict):
-    def __init__(self):
-
-        # Also - it will duplicate the above as a set of values.
-        self.devices = {}
-
-    def get_attributes(self, **kwargs):
-        """This method gets all attributes in the associated list.
-           I've tried to avoid 'custom' work, but it's CLI. Tough.
-           If you want to have more attributes, build it in to this method.
-        """
-        # Figure out how many devices in the stack and what
-        _tmp = self._transport_converter(
-                                    kwargs.get('transport'),
-                                    kwargs.get('instance'),
-                                    'show version | inc Management Module')
-
-        # Get the count of devices
-        _ndevices = len(_tmp)
-
-        # This section fills in the device type and number
-        _devcount = 1
-        for dev in (_tmp):
-            _tmp2 = dev.strip()
-            _tmp2 = _tmp2.split(" ")
-            self.devices[_devcount] = {'model': _tmp2[4]}
-            if _devcount < _ndevices:
-                _devcount += 1
-
-        # This section fills in the version of code
-        _tmp = self._transport_converter(
-                                    kwargs.get('transport'),
-                                    kwargs.get('instance'),
-                                    'show version | inc SW: Version')
-
-        _devcount = 1
-        for dev in (_tmp):
-            _tmp2 = dev.strip()
-            _tmp2 = _tmp2.split(" ")
-            self.devices[_devcount].update({'version': _tmp2[2]})
-            if _devcount < _ndevices:
-                _devcount += 1
-
-        # This section fills in the uptime per device
-        _tmp = self._transport_converter(
-                                    kwargs.get('transport'),
-                                    kwargs.get('instance'),
-                                    'show version | inc uptime')
-
-        _devcount = 1
-        for dev in (_tmp):
-            _tmp2 = dev.strip()
-            _tmp2 = _tmp2.split(" ")
-            _tmp3 = ' '.join(_tmp2[6:])
-            self.devices[_devcount].update({'uptime': _tmp3})
-            if _devcount < _ndevices:
-                _devcount += 1
-
-
-        # This section fills in the hostname
-        _tmp = self._transport_converter(
-                                    kwargs.get('transport'),
-                                    kwargs.get('instance'),
-                                    'show running-config | inc hostname')
-
-        if _tmp:
-            _devcount = 1
-            _tmp2 = str(_tmp)
-            _tmp2 = _tmp2.strip()
-            _tmp2 = _tmp2.split(" ")
-            for dev in range(_ndevices):
-                self.devices[_devcount].update({'hostname': _tmp2[1]})
-                if _devcount < _ndevices:
-                    _devcount += 1
-
-        if not _tmp:
-            self.devices[_devcount].update({'hostname': 'Not set'})
-
-        # This section fills in the serial
-        _tmp = self._transport_converter(
-                                    kwargs.get('transport'),
-                                    kwargs.get('instance'),
-                                    'show version | inc Serial')
-        _devcount = 1
-        for dev in (_tmp):
-            _tmp2 = dev.strip()
-            _tmp2 = _tmp2.split(" ")
-            print "[DBG] _tmp2 = " + str(_tmp2)
-            self.devices[_devcount].update({'serial': _tmp2[3]})
-            if _devcount < _ndevices:
-                _devcount += 1
-
-
-    def set_attribute(self, **kwargs):
-        """This method sets and can override each attribute.
-           Requires KWs:    device (integer)
-                            parameter (string)
-                            value (anything)
-        """
-        _device = kwargs.get('device')
-        _parameter = kwargs.get('parameter')
-        _value = kwargs.get('value')
-        self.devices[_device].update({_parameter: _value})
-
-    def _transport_converter(self, transport, instance, command):
-        """This method converts between SSH and Telnet.
-            Ultimately abstracting away the differences between the two.
-        """
-        if transport is 'telnet':
-            _output = instance.read(command)
-            return _output
-
-        if transport is 'ssh':
-            _output = instance.read(command)
-            return _output
+from attributes import _attributes
 
 
 class telnet(object):
@@ -195,9 +79,11 @@ class telnet(object):
                 if "Name:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
+                    logging.info*("[icx6610/ver/base/__init__.py] Detected username in authentication sequence")
                 if ">" in _detect_buffer:
                     self._send_enable = True
                     _detect = False
+                    logging.info*("[icx6610/ver/base/__init__.py] Priv mode required")
                 time.sleep(0.1)
                 _timer += 1
                 if _timer >= 30:
@@ -232,6 +118,7 @@ class telnet(object):
                     if ">" in _detect_buffer:
                         self._send_enable = True
                         _detect = False
+                        logging.info*("[icx6610/ver/base/__init__.py] Priv mode required")
                     if "#" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
@@ -244,6 +131,7 @@ class telnet(object):
                         self.client.write("skip\r")
                         self.client.read_until("mode")
                         self.client.read_until(self._hostname)
+                        logging.info*("[icx6610/ver/base/__init__.py] Entered priv mode")
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 10:
@@ -274,6 +162,7 @@ class telnet(object):
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
                         _detect = False
+                        logging.info*("[icx6610/ver/base/__init__.py] Entered priv mode")
                         break
                     if "Password:" in _detect_buffer:
                         self._send_enable = False
@@ -292,6 +181,7 @@ class telnet(object):
                         # self.client.write("skip\r")
                         # self.client.read_until("mode")
                         # self.client.read_until(self._hostname)
+                        logging.info*("[icx6610/ver/base/__init__.py] Entered priv mode")
 
                     time.sleep(0.1)
                     _timer += 1
@@ -314,8 +204,9 @@ class telnet(object):
                 self._error = True
                 return
 
+    def get_attributes(self):
         try:
-            # TODO: Here we do the attribute stuff and pass the
+            # Here we do the attribute stuff and pass the
             # self.client across to the routine so it can retrieve
             # useful values (nom noms)
             self.attributes.get_attributes(transport='telnet',
@@ -443,16 +334,29 @@ class ssh(object):
                 self.client_conn.send("skip\n")
                 self.output = self.blocking_recv()
 
-            # TODO: Here we do the attribute stuff and pass the
-            # self.client across to the routine so it can retrieve
-            # useful values (nom noms)
-            self.attributes.get_attributes(transport='ssh', instance=self)
-
         except Exception, err:
             sys.stderr.write('\nERROR for host: %s - %s\n' %
                              (_args['host'], str(err)))
 
             logging.error('ERROR for host %s - %s\n:' % (_args['host'], err))
+            self._error = True
+            return
+
+    def get_attributes(self):
+        try:
+            # Here we do the attribute stuff and pass the
+            # self.client across to the routine so it can retrieve
+            # useful values (nom noms)
+            self.attributes.get_attributes(transport='ssh',
+                                           instance=self)
+
+        except Exception, err:
+            sys.stderr.write('\nERROR for host: %s - %s\n' %
+                             (_args['host'], str(err)))
+
+            logging.error('ERROR for host %s - %s\n:' %
+                          (_args['host'], err))
+
             self._error = True
             return
 

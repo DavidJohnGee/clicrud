@@ -14,21 +14,20 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 """
+import logging
 
-import paramiko
-import time
-import telnetlib
-import io
+# This exists for extension puporses and correction between versions of
+# attribute gathering methods. Otherwise, leave this alone.
 
-from clicrud.device.icx6610.ver.base import telnet as telnetBase
-from clicrud.device.icx6610.ver.base import ssh as sshBase
+class _attributes(dict):
+    def __init__(self):
+        pass
 
-# If any attribute gathering methods need to be changed, import the correct
-# attribute version here and put the right code in to 'override'
+    def get_attributes(self, **kwargs):
+        pass
 
-class telnet(telnetBase):
-    super(telnet, self).get_attributes()
+    def set_attribute(self, **kwargs):
+        pass
 
-
-class ssh(sshBase):
-    super(ssh, self).get_attributes()
+    def _transport_converter(self, transport, instance, command):
+        pass

@@ -55,7 +55,7 @@ class icx6610(object):
                 for version in METHODS:
                     if any(version in ls for ls in _ver):
                         self._device_version = version
-                transport.close()
+                # transport.close()
 
         if _args.get('method') == 'ssh' and _args.get('method') \
                 in METHOD_ATTRS:
@@ -66,14 +66,16 @@ class icx6610(object):
                 for version in METHODS:
                     if any(version in ls for ls in _ver):
                         self._device_version = version
-                transport.close()
+                # transport.close()
 
         try:
-            if not transport._error:
+            if not transport._error and self._device_version is not '0':
+                transport.close()
                 self._transport = METHODS[self._device_version][
                                       _args.get('method')](**_args)
             else:
-                self._transport = None
+                self._transport = transport
+                self._transport.get_attributes()
 
         except Exception, err:
             print "This might not be an ICX6110. Issue detecting and provisioning version."
