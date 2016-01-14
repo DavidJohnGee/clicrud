@@ -228,7 +228,8 @@ class telnet(object):
 
     def read(self, command, **kwargs):
         """
-        Returns a list with each entry representing one line of output
+        Returns a list with each entry representing one line of output,
+        or a string if the kwarg 'return_type' = 'string'.
         """
         _string = ""
         _args = kwargs
@@ -251,6 +252,36 @@ class telnet(object):
             return _string[:-1]
         else:
             return return_list
+
+    def configure(self, command, **kwargs):
+        """
+        This configuration method inputs a command and waits until it reads
+        it's configuration mode hostname.
+        It also changes mode from priv to conf then back again to priv
+        on exit.
+
+        If kwarg 'save=True' is passed, then it will also commit config
+        changes to memory.
+
+        Returs nothing.
+        """
+
+        _args = kwargs
+        # This allows us to change our read marker for conf mode.
+        self._config_hostname = self._hostname + ' (conf)'
+        # Enter configuration mode
+        self.client.write("conf t\r\n" % command)
+        self._read_data = self.client.read_until(self.config_hostname)
+        self.client.write("%s\r\n" % command)
+        self._read_data = self.client.read_until(self.config_hostname)
+        # and now to return to priv mode
+        self.client.write("exit\r\n" % command)
+        self._read_data = self.client.read_until(self._hostname)
+        # at this point, we can save if the kwarg has been passed.
+        if _args.get('save') and _args.get('save') is True:
+            self.client.write("write\r\n" % command)
+            self._read_data = self.client.read_until(self._hostname)
+        return
 
     def close(self):
         self.client.close()

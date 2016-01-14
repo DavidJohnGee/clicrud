@@ -26,9 +26,20 @@ from clicrud.device.icx6610.ver.base import ssh as sshBase
 # If any attribute gathering methods need to be changed, import the correct
 # attribute version here and put the right code in to 'override'
 
+
 class telnet(telnetBase):
-    super(telnet, self).get_attributes()
+    """This class extends the base version and calls attributes."""
+
+    def __init__(self):
+        """First call the inherited init() and then get attribs."""
+        super(telnet, self).__init__(self)
+        super(telnet, self).get_attributes()
 
 
 class ssh(sshBase):
-    super(ssh, self).get_attributes()
+    """This class extends the base version and calls attributes."""
+
+    def __init__(self):
+        """First call the inherited init() and then get attribs."""
+        super(ssh, self).__init__(self)
+        super(ssh, self).get_attributes()
