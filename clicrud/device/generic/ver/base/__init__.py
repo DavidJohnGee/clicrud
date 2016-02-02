@@ -205,7 +205,21 @@ class telnet(object):
 
     def read(self, command, **kwargs):
         """
-        Returns a list with each entry representing one line of output
+        Executes operational command on the device.
+
+        Arguments:
+            command  = a string command
+            **kwargs = return_type = string
+
+        Returns:
+            A string if requested, or a list if not
+
+        Throws:
+            Nothing
+
+        Notes:
+            Do not try and frak with this. If you want
+            to run config, do it with the configure method.
         """
 
         _string = ""
@@ -236,52 +250,78 @@ class telnet(object):
         """
         Executes configuration on the device.
         Might not return anything (probably will not)
+
+        Arguments:
+            commands = a list of commands
+            **kwargs = none
+
+        Returns:
+            a dictionary, with KV values of command
+            and returned values
+
+        Throws:
+            Nothing
+
+        Notes:
+            This method takes care of mode switching
+            between config and operational. Do not worry!
         """
 
-        _string = ""
         _args = kwargs
         _commands = commands
+        _dict_response = {}
+
+        for _command in _commands:
+            _dict_response[_command] = ''
+
+        # Lets get the latest hostname. You know what sysadmins are like!
+        self.client.write("\r")
+        self._hostname = self.client.read_until("#")
+        self._hostname = self._hostname.translate(None, '\r\n')
 
         # Let's figure out what our new prompt looks like
         self.client.write("%s\r\n" % "conf t")
-        self.client.write("\r")
+        self._config_hostname = self.client.read_until("#")
+        self.client.write("\r\n")
         self._config_hostname = self.client.read_until("#")
         self._config_hostname = self._config_hostname.translate(None, '\r\n')
 
-        # At this point we should be in config mode. Let's send the commands.
-        # The commands should be in a list, so let's go with it.
+        # At this point we should be in config mode. Let's send the commands
+        # Also - the prompt can change (thanks devs). Let's ignore the prompt
+        # only save the actual output.
 
-        for command in _commands:
-            print "[DEBUG] command: " + command
+        self._mass_data = ""
+        for _command in _commands:
+            self.client.write("%s\r\n" % _command)
+            time.sleep(0.5)
+            self._temp_line = self.client.read_until(")#")
+            self._response = self._temp_line
+            self._temp_line = self._temp_line.translate(None, '\r\n')
+            # print "[DEBUG 1] temp_line: " + self._temp_line
+            _marker1 = self._temp_line.find(self._hostname[:-1])
+            # print "[DEBUG 2] _marker1: " + str(_marker1)
+            _marker2 = self._temp_line.find(")#")
+            # print "[DEBUG 3] _marker2: " + str(_marker2)
+            _marker2 += 1
+            self._config_hostname = self._temp_line[_marker1:_marker2+1]
+            # print "[DEBUG 4] config_hostname: " + self._config_hostname
 
+            self._temp_data = io.BytesIO(self._response)
+            self._lines = self._temp_data.readlines()
 
-        # TODO: Remove this. This is just for testing so I don't screw the device up.
-        self.client.write("%s\r\n" % "exit")
-        self._read_data = self.client.read_until(self._hostname)
-        # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-        
-        """
-        self._read_data = self.client.read_until(self._hostname)
-        self._temp_data = io.BytesIO(self._read_data)
-        self._lines = self._temp_data.readlines()
-        return_list = []
+            # Let's strip out the whitespace
+            for _val, _line in enumerate(self._lines):
 
-        for line in self._lines:
-            if line != '\r\n' and line != self._hostname:
-                line = line.translate(None, '\r\n')
-                if line != command:
-                    return_list.append(line)
+                # print "[DEBUG]: " + _val + " " + _line
+                if _val <= 1:
+                    _line = _line.translate(None, '\r\n')
+                if _command != _line and self._config_hostname != _line:
+                    _dict_response[_command] = _line
 
-        # PEP 8 fix
-        # if _args.has_key('return_type'):
-        if "return_type" in _args:
-            if _args.get('return_type') == 'string':
-                for line in return_list:
-                    _string += line + '\n'
-            return _string[:-1]
-        else:
-            return return_list
-        """        
+        self.client.write("%s\r\n" % "end")
+        self.client.read_until(self._hostname)
+
+        return _dict_response
 
     def close(self):
         self.client.close()
@@ -405,8 +445,7 @@ class ssh(object):
             self.output = self.blocking_recv(self._hostname)
             stream = io.BytesIO(self.output)
             self.count = 0
-            # FIX: Generic missed the top line off 'show version'
-            # Decreased < 2 to 1
+
             while self.count < 1:
                 stream.readline()
                 self.count += 1
@@ -427,6 +466,89 @@ class ssh(object):
                 return _string[:-1]
             else:
                 return _returnlist
+
+    def configure(self, commands, **kwargs):
+        """
+        Executes configuration on the device.
+        Might not return anything (probably will not)
+
+        Arguments:
+            commands = a list of commands
+            **kwargs = none
+
+        Returns:
+            a dictionary, with KV values of command
+            and returned values
+
+        Throws:
+            Nothing
+
+        Notes:
+            This method takes care of mode switching
+            between config and operational. Do not worry!
+        """
+
+        _args = kwargs
+        _commands = commands
+        _dict_response = {}
+
+        for _command in _commands:
+            _dict_response[_command] = ''
+
+        # Lets get the latest hostname. You know what sysadmins are like!
+        self.client_conn.send("\n")
+        self._hostname = self.blocking_recv('#')
+        self._hostname = self._hostname.translate(None, '\r\n')
+
+        # Let's figure out what our new prompt looks like
+        self.client_conn.send("%s\r\n" % "conf t")
+        self._config_hostname = self.blocking_recv("#")
+        self.client_conn.send("\n")
+        self._config_hostname = self.blocking_recv('#')
+        self._config_hostname = self._config_hostname.translate(None, '\r\n')
+        # print "[DEBUG] self._config_hostname: " + self._config_hostname
+
+        # At this point we should be in config mode. Let's send the commands
+        # Also - the prompt can change (thanks devs). Let's ignore the prompt
+        # only save the actual output.
+
+        self._mass_data = ""
+        for _command in _commands:
+            self.client_conn.send("%s\r\n" % _command)
+            time.sleep(0.5)
+            self._temp_line = self.blocking_recv(")#")
+            self._response = self._temp_line
+            self._temp_line = self._temp_line.translate(None, '\r\n')
+            # print "[DEBUG 1] temp_line: " + self._temp_line
+            _marker1 = self._temp_line.find(self._hostname[:-1])
+            # print "[DEBUG 2] _marker1: " + str(_marker1)
+            _marker2 = self._temp_line.find(")#")
+            # print "[DEBUG 3] _marker2: " + str(_marker2)
+            _marker2 += 1
+            self._config_hostname = self._temp_line[_marker1:_marker2+1]
+            # print "[DEBUG 4] config_hostname: " + self._config_hostname
+
+            self._temp_data = io.BytesIO(self._response)
+            self._lines = self._temp_data.readlines()
+
+            # Let's strip out the whitespace
+            for _val, _line in enumerate(self._lines):
+                _line = _line.strip()
+                _line = _line.translate(None, '\r\n')
+                if _line == '':
+                    break
+
+                # print "[DEBUG]: " + str(_val) + " " + str(_line)
+                if _val <= 1:
+                    _line = _line.translate(None, '\r\n')
+                if _command != _line and self._config_hostname != _line:
+                    _dict_response[_command] = _line
+
+        self.client_conn.send("%s\r\n" % "end")
+        self.blocking_recv(self._hostname)
+
+        return _dict_response
+
 
     def close(self):
         self.client.close()

@@ -21,8 +21,18 @@ from clicrud.device.generic import generic
 transport = generic(host="192.168.10.52", username="admin", enable="Passw0rd",
                     method="ssh", password="Passw0rd")
 
+print "===Configuration data and feedback:"
+# Returns a dict with commands and responses as key/values
+print transport.configure([
+                           "vlan 100 name Bob",
+                           "untagged eth 1/1/15"
+                           ],
+                          return_type="string")
+
+print "\r\n===Show VLAN 100:"
+print transport.read("show vlan 100", return_type="string")
+
 # Note - no need to enter 'skip'. Pagination is turned off by code.
-# Just worry about the command!
 
 # print transport.protocol
 # print transport.connected
