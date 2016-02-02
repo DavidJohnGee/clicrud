@@ -16,21 +16,31 @@ limitations under the License.
 """
 
 from clicrud.device.generic import generic
+from attributes import _attributes
 
+# transport = generic(host="192.168.10.52",
+#                     username="admin",
+#                     enable="Passw0rd",
+#                     method="ssh",
+#                     password="Passw0rd")
+
+icx6610 = _attributes()
 
 transport = generic(host="192.168.10.52", username="admin", enable="Passw0rd",
-                    method="ssh", password="Passw0rd")
+                    method="telnet", password="Passw0rd", attributes=icx6610)
 
 print "===Configuration data and feedback:"
 # Returns a dict with commands and responses as key/values
 print transport.configure([
                            "vlan 100 name Bob",
                            "untagged eth 1/1/15"
-                           ],
-                          return_type="string")
+                           ])
 
 print "\r\n===Show VLAN 100:"
 print transport.read("show vlan 100", return_type="string")
+
+print "\r\n===Show Attributes:"
+print icx6610.devices
 
 # Note - no need to enter 'skip'. Pagination is turned off by code.
 
