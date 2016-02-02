@@ -232,6 +232,57 @@ class telnet(object):
         else:
             return return_list
 
+    def configure(self, commands, **kwargs):
+        """
+        Executes configuration on the device.
+        Might not return anything (probably will not)
+        """
+
+        _string = ""
+        _args = kwargs
+        _commands = commands
+
+        # Let's figure out what our new prompt looks like
+        self.client.write("%s\r\n" % "conf t")
+        self.client.write("\r")
+        self._config_hostname = self.client.read_until("#")
+        self._config_hostname = self._config_hostname.translate(None, '\r\n')
+
+        # At this point we should be in config mode. Let's send the commands.
+        # The commands should be in a list, so let's go with it.
+
+        for command in _commands:
+            print "[DEBUG] command: " + command
+
+
+        # TODO: Remove this. This is just for testing so I don't screw the device up.
+        self.client.write("%s\r\n" % "exit")
+        self._read_data = self.client.read_until(self._hostname)
+        # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+        
+        """
+        self._read_data = self.client.read_until(self._hostname)
+        self._temp_data = io.BytesIO(self._read_data)
+        self._lines = self._temp_data.readlines()
+        return_list = []
+
+        for line in self._lines:
+            if line != '\r\n' and line != self._hostname:
+                line = line.translate(None, '\r\n')
+                if line != command:
+                    return_list.append(line)
+
+        # PEP 8 fix
+        # if _args.has_key('return_type'):
+        if "return_type" in _args:
+            if _args.get('return_type') == 'string':
+                for line in return_list:
+                    _string += line + '\n'
+            return _string[:-1]
+        else:
+            return return_list
+        """        
+
     def close(self):
         self.client.close()
 

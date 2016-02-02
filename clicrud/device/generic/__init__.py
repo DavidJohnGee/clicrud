@@ -44,6 +44,10 @@ class generic(object):
         _args = kwargs
         return self._transport.read(command, **_args)
 
+    def configure(self, commands, **kwargs):
+        _args = kwargs
+        return self._transport.configure(commands, **_args)
+
     @property
     def protocol(self):
         return self._transport.protocol
