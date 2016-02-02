@@ -21,17 +21,17 @@ import telnetlib
 import io
 import logging
 import sys
-import os
 
 
 class telnet(object):
+
     def __init__(self, **kwargs):
         _args = {}
         _opts = {}
         self._error = False
         _t_args = kwargs
         if _t_args.get('setup'):
-            if kwargs['setup'] != None:
+            if kwargs['setup'] is not None:
                 _opts = kwargs['setup']._options
                 _args['splash'] = kwargs['setup']._splash
                 _args['period'] = _opts.period
@@ -51,7 +51,6 @@ class telnet(object):
         # Make these global per instance
         self._args = _args
 
-        _temp_data = ""
         try:
             self.client = telnetlib.Telnet(str(_args['host']),
                                            _args['port'], 10)
@@ -79,11 +78,9 @@ class telnet(object):
                 if "Name:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
-                    logging.info*("[generic/ver/base/__init__.py] Detected username in authentication sequence")
                 if ">" in _detect_buffer:
                     self._send_enable = True
                     _detect = False
-                    logging.info*("[generic/ver/base/__init__.py] Priv mode required")
                 time.sleep(0.1)
                 _timer += 1
                 if _timer >= 30:
@@ -118,7 +115,6 @@ class telnet(object):
                     if ">" in _detect_buffer:
                         self._send_enable = True
                         _detect = False
-                        logging.info*("[generic/ver/base/__init__.py] Priv mode required")
                     if "#" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
@@ -131,7 +127,6 @@ class telnet(object):
                         self.client.write("skip\r")
                         self.client.read_until("mode")
                         self.client.read_until(self._hostname)
-                        logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 10:
@@ -163,7 +158,6 @@ class telnet(object):
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
                         _detect = False
-                        logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
                         break
                     if "Password:" in _detect_buffer:
                         self._send_enable = False
@@ -182,7 +176,6 @@ class telnet(object):
                         # self.client.write("skip\r")
                         # self.client.read_until("mode")
                         # self.client.read_until(self._hostname)
-                        logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
 
                     time.sleep(0.1)
                     _timer += 1
@@ -204,14 +197,15 @@ class telnet(object):
                 self._error = True
                 return
 
+        logging.info("Telnet class instantiated")
+
     @property
     def hostname(self):
         return self._hostname
 
     def read(self, command, **kwargs):
         """
-        Returns a list with each entry representing one line of output,
-        or a string if the kwarg 'return_type' = 'string'.
+        Returns a list with each entry representing one line of output
         """
 
         _string = ""
@@ -238,36 +232,6 @@ class telnet(object):
         else:
             return return_list
 
-    def configure(self, command, **kwargs):
-        """
-        This configuration method inputs a command and waits until it reads
-        it's configuration mode hostname.
-        It also changes mode from priv to conf then back again to priv
-        on exit.
-
-        If kwarg 'save=True' is passed, then it will also commit config
-        changes to memory.
-
-        Returs nothing.
-        """
-
-        _args = kwargs
-        # This allows us to change our read marker for conf mode.
-        self._config_hostname = self._hostname + ' (conf)'
-        # Enter configuration mode
-        self.client.write("conf t\r\n" % command)
-        self._read_data = self.client.read_until(self.config_hostname)
-        self.client.write("%s\r\n" % command)
-        self._read_data = self.client.read_until(self.config_hostname)
-        # and now to return to priv mode
-        self.client.write("exit\r\n" % command)
-        self._read_data = self.client.read_until(self._hostname)
-        # at this point, we can save if the kwarg has been passed.
-        if _args.get('save') and _args.get('save') is True:
-            self.client.write("write\r\n" % command)
-            self._read_data = self.client.read_until(self._hostname)
-        return
-
     def close(self):
         self.client.close()
 
@@ -282,6 +246,7 @@ class telnet(object):
 
 
 class ssh(object):
+
     def __init__(self, **kwargs):
         # This code is very unixy. Make Windows happy.
         # paramiko.util.log_to_file('/tmp/clicrud.log')
@@ -311,7 +276,6 @@ class ssh(object):
 
         # Make these global per instance
         self._args = _args
-        _temp_data = ""
 
         self.client = paramiko.SSHClient()
         self.client.load_system_host_keys()
@@ -336,7 +300,7 @@ class ssh(object):
                 self.output = self.blocking_recv()
                 self.client_conn.send(_args['enable'] + "\n")
                 self.output = self.blocking_recv()
-                logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
+
             # Check for error
             if "incorrect" in self.output:
                 raise Exception('Incorrect authentication details')
@@ -348,7 +312,6 @@ class ssh(object):
                 self._hostname = self.output.translate(None, '\r\n')
                 self.client_conn.send("skip\n")
                 self.output = self.blocking_recv()
-                logging.info*("[generic/ver/base/__init__.py] Entered priv mode")
                 # self.client.close()
 
         except Exception, err:
@@ -358,6 +321,8 @@ class ssh(object):
             logging.error('ERROR for host %s - %s\n:' % (_args['host'], err))
             self._error = True
             return
+
+        logging.info("SSH class instantiated")
 
     @property
     def hostname(self):
@@ -389,7 +354,8 @@ class ssh(object):
             self.output = self.blocking_recv(self._hostname)
             stream = io.BytesIO(self.output)
             self.count = 0
-            #FIX: Generic missed the top line off 'show version'. Decreased < 2 to 1.
+            # FIX: Generic missed the top line off 'show version'
+            # Decreased < 2 to 1
             while self.count < 1:
                 stream.readline()
                 self.count += 1
@@ -410,37 +376,6 @@ class ssh(object):
                 return _string[:-1]
             else:
                 return _returnlist
-
-    def configure(self, command, **kwargs):
-        """
-        This configuration method inputs a command and waits until it reads
-        it's configuration mode hostname.
-        It also changes mode from priv to conf then back again to priv
-        on exit.
-
-        If kwarg 'save=True' is passed, then it will also commit config
-        changes to memory.
-
-        Returs nothing.
-        """
-
-        _args = kwargs
-        # This allows us to change our read marker for conf mode.
-        self._config_hostname = self._hostname + ' (conf)'
-        # Enter configuration mode
-        self.client_conn.send("%s\n" % "conf t")
-        self.output = self.blocking_recv(self._config_hostname)
-        # and now the command
-        self.client_conn.send("%s\n" % command)
-        self.output = self.blocking_recv(self._config_hostname)
-        # Return to priv mode
-        self.client_conn.send("%s\n" % "exit")
-        self.output = self.blocking_recv(self._hostname)
-        # at this point, we can save if the kwarg has been passed.
-        if _args.get('save') and _args.get('save') is True:
-            self.client_conn.send("%s\n" % "write")
-            self.output = self.blocking_recv(self._hostname)
-        return
 
     def close(self):
         self.client.close()

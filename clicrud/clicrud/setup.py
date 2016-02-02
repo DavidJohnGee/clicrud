@@ -17,14 +17,11 @@ limitations under the License.
 """
 
 import os
-import sys
 import getpass
 import logging
 import psutil
 import copy
 
-from multiprocessing import Queue
-from multiprocess import buildThread
 from helpers import cls, getpid
 from optparse import OptionParser
 from time import sleep
@@ -54,7 +51,7 @@ class setup(object):
     # _pidfile = "/tmp/icx_collection.pid"
     # _log = "/tmp/clicrud.log"
 
-    _pidfile = "icx_collection.pid"
+    _pidfile = "clicrud_collection.pid"
     _log = "clicrud.log"
 
     def __init__(self, splash):
@@ -64,6 +61,7 @@ class setup(object):
         # PID List
         self._pid_list = []
 
+        # Parallel mode by default
         self.parallel = True
 
         # Setup logging

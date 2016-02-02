@@ -52,55 +52,31 @@ if __name__ == '__main__':
     #    username="admin", host="192.168.10.52",
     #    enable="Passw0rd", password="Passw0rd")
 
-    # Usage specific to ICX6610. 'Telnet' and 'ssh' methods exist.
-    # To override the port defaults of 22 & 23, add port=NUMBER to each KWARG
-
-    # read = buildThread(read, clicrud, listofcommands="commands.txt",
-    # method='telnet', fileoutput=True, fileformat='string',\
-    # username="admin", host="192.168.10.52", enable="Passw0rd",
-    # password="Passw0rd",type='icx6610')
-
-    # Generic usage - this works for MLX, CER_CES. Change ports and
-    # methods between 'telnet' and 'ssh'.
-
-    # read = buildThread(read, clicrud, command="show version",
-    #    method='ssh', fileoutput=True, fileformat='string',\
-    #    username="admin", host="192.0.2.2", enable="Passw0rd",\
-    #    password="Passw0rd")
-
-    # qread = buildThread(read, clicrud, command="show version",
-    #    method='ssh', username="admin", host="192.0.2.2",
-    #    enable="Passw0rd", password="Passw0rd")
-
     # delay=X - this is the delay between each command in a list being
-    # retrieved. Adjust this to keep CPU activity low
 
-
-    cer_ces = buildThread(read, clicrud.get_setup,
-                      listofcommands="commands.txt",
-                      fileoutput=True, fileformat='string',
-                      method='ssh', username="admin",
-                      host="192.0.2.2", password="Passw0rd",
-                      enable="Passw0rd", type="generic", delay=0.5)
-
-    icx6610_telnet = buildThread(read, clicrud.get_setup,
-                        listofcommands="commands.txt",
-                        fileoutput=True, fileformat='string',
-                        method='telnet', username="admin",
-                        host="192.168.10.52", password="Passw0rd",
-                        enable="Passw0rd", type="generic", delay=0.5)
+    some_device = buildThread(read, clicrud.get_setup(),
+                              listofcommands="commands.txt",
+                              fileoutput=True,
+                              fileformat='string',
+                              method='telnet',
+                              username="admin",
+                              host="192.168.10.52",
+                              password="Passw0rd",
+                              enable="Passw0rd",
+                              delay=0.5)
 
     # Start does multiple things. Adds the function to the thread list,
     # start processes and enters a loop state if one has been called
     # for via useage of the CLI script
 
     clicrud.setup.parallel = True
-    clicrud.setup.start(cer_ces, icx6610_telnet)
+
+    clicrud.setup.start(some_device)
 
     # This returns a dict where key = command and output= list of output lines
-    # print read.output()
+    # print somedevice.output()
     # This one returns a decorated prettier string
-    # print read.prettyOutput()
+    # print somedevice.prettyOutput()
 
     # This does not immediately stop anything. It stops if the CLI loop exits
     clicrud.setup.stop()

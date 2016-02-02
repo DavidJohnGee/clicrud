@@ -20,17 +20,8 @@ import time
 import json
 import sys
 
-# Right now ICX6610 is the only device supported.
-# Make some auto-detection for device like version.
-# This will require a 'testing' base. Think "show version"
-# and some parsing for device types
-from clicrud.device.icx6610 import icx6610
 from clicrud.device.generic import generic
 
-DEVICES = {
-    'icx6610': icx6610,
-    'generic': generic,
-    }
 
 # queue = output queue
 # finq = finished queue ('completed_run')
@@ -64,15 +55,7 @@ def read(queue, finq, ranonceq, **kwargs):
                     logging.error("Could not open 'listofcommands' file")
 
     # Build transport
-    # Device type is checked in kwargs. If not present, 'generic' is chosen.
-    # All devices must be imported as top of file
-    #
-    # PEP8 FIX:
-    # if _kwargs.has_key('type'):
-    if "type" in _kwargs:
-        _transport = DEVICES[_kwargs.get('type')](**_kwargs)
-    else:
-        _transport = generic(**_kwargs)
+    _transport = generic(**_kwargs)
 
     if _transport.err:
         finq.put('error')

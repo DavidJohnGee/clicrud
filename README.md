@@ -16,13 +16,8 @@ This library will also self version. What this means is, if you choose the speci
 try and figure out the software version and load the specific class. Below are the class types available currently:
 
 ####Generic
-Generic is to be used with MLX, CER_CES.
-More work will be done to build specific self versioning classes for these devices.
+Generic is the device class. It is possible to copy this class and 'tweak it' for other usage.
 
-####ICX6610 (7.4/8.0 code)
-This class is to be used for the ICX6610 device on the specific code versions. 
-For all other ICX platforms and versions, please feel free to request it, or add it yourself and create a pull request.
-Without guarantee, the ICX6610 code *should* also support other ICX platforms.
 
 ##Installation
 ```
