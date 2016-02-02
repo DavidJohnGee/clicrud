@@ -199,6 +199,11 @@ class telnet(object):
 
         logging.info("Telnet class instantiated")
 
+        logging.info("Checking for attributes")
+        if "attributes" in _args:
+            _args['attributes'].get_attributes(transport="telnet",
+                                               instance=self)
+
     @property
     def hostname(self):
         return self._hostname
@@ -414,6 +419,11 @@ class ssh(object):
             return
 
         logging.info("SSH class instantiated")
+
+        logging.info("Checking for attributes")
+        if "attributes" in _args:
+            _args['attributes'].get_attributes(transport="ssh",
+                                               instance=self)
 
     @property
     def hostname(self):
