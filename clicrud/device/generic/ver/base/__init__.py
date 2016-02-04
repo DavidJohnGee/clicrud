@@ -344,9 +344,9 @@ class telnet(object):
 class ssh(object):
 
     def __init__(self, **kwargs):
-        # This code is very unixy. Make Windows happy.
-        # paramiko.util.log_to_file('/tmp/clicrud.log')
+        paramiko.common.logging.basicConfig(level=paramiko.common.WARNING, filename='clicrud-paramiko.log')
         paramiko.util.log_to_file('clicrud.log')
+
         _args = {}
         _opts = {}
         self._error = False
@@ -363,8 +363,6 @@ class ssh(object):
         _args.update(_t_args)
 
         # Check for port value. If it doesn't exist, default to 22
-        # PEP8 fix
-        # if _args.has_key('port'):
         if "port" in _args:
             pass
         else:
@@ -558,7 +556,6 @@ class ssh(object):
         self.blocking_recv(self._hostname)
 
         return _dict_response
-
 
     def close(self):
         self.client.close()
