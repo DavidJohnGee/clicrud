@@ -18,12 +18,6 @@ limitations under the License.
 from clicrud.device.generic import generic
 from attributes import _attributes
 
-# transport = generic(host="192.168.10.52",
-#                     username="admin",
-#                     enable="Passw0rd",
-#                     method="ssh",
-#                     password="Passw0rd")
-
 icx6610 = _attributes()
 
 transport = generic(host="192.168.10.52", username="admin", enable="Passw0rd",

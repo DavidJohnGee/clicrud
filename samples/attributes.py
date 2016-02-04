@@ -20,7 +20,7 @@ import logging
 class _attributes(dict):
     def __init__(self):
 
-        # Also - it will duplicate the above as a set of values.
+        # This is the dictionary that is generated with the attributes
         self.devices = {}
 
     def get_attributes(self, **kwargs):
@@ -111,7 +111,6 @@ class _attributes(dict):
         for dev in (_tmp):
             _tmp2 = dev.strip()
             _tmp2 = _tmp2.split(" ")
-            print "[DBG] _tmp2 = " + str(_tmp2)
             self.devices[_devcount].update({'serial': _tmp2[3]})
             if _devcount < _ndevices:
                 _devcount += 1
