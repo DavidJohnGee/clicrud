@@ -21,7 +21,7 @@ from attributes import _attributes
 icx6610 = _attributes()
 
 transport = generic(host="192.168.10.52", username="admin", enable="Passw0rd",
-                    method="telnet", password="Passw0rd", attributes=icx6610)
+                    method="ssh", password="Passw0rd", attributes=icx6610)
 
 print "===Configuration data and feedback:"
 # Returns a dict with commands and responses as key/values

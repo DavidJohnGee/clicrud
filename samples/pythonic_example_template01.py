@@ -33,9 +33,13 @@ template = env.get_template('harti.j2')
 _config_list = return_config_list_from_template(
     template.render(ve1=vdx1.ve1, ve2=vdx1.ve2, ve3=vdx1.ve3))
 
+transport = generic(host="172.27.181.121", username="admin", enable="password",
+                    method="telnet", password="password")
 
-# transport = generic(host="10.18.254.43", username="admin", enable="Passw0rd",
-#                    method="telnet", password="Passw0rd")
+print transport.configure(_config_list)
+
+print transport.read("show running-config interface Ve 100", return_type="string")
+
 
 
 # print "===show version"
