@@ -5,7 +5,7 @@ Setup for clicrud
 from setuptools import setup, find_packages
 
 setup(name='clicrud',
-      version='0.2.10',
+      version='0.2.11',
       description='Brocade CLI CRUD Operations Library.',
       author='Brocade Communications Systems, Inc.',
       author_email='dgee@brocade.com',
