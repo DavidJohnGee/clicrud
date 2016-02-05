@@ -29,6 +29,7 @@ class telnet(object):
         _args = {}
         _opts = {}
         self._error = False
+        self.output = ""
         _t_args = kwargs
         if _t_args.get('setup'):
             if kwargs['setup'] is not None:
@@ -74,8 +75,16 @@ class telnet(object):
         self._send_enable = False
         try:
             while _detect:
+                time.sleep(1)
                 _detect_buffer += self.client.read_some()
+                if "Password:" in _detect_buffer:
+                    self.client.write("null\r\n")
+                    time.sleep(1)
+                    _detect_buffer = ""
+                    continue
                 if "Name:" in _detect_buffer:
+                    self._send_username = True
+                if "login:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
                 if ">" in _detect_buffer:
@@ -83,7 +92,7 @@ class telnet(object):
                     _detect = False
                 time.sleep(0.1)
                 _timer += 1
-                if _timer >= 30:
+                if _timer >= 120:
                     _detect = False
 
         except Exception, err:
@@ -96,8 +105,45 @@ class telnet(object):
 
         # Now we know whether we need to send a username or enable password
         if self._send_username:
-            self.client.write("%s\r" % _args['username'])
-            self.client.read_until("Password:")
+            self.client.write("%s\r\n" % _args['username'])
+            _detect_buffer = ""
+            _detect_buffer += self.client.read_some()
+            # To deal with spurious VDX Telnet issues
+            if 'Password:' in _detect_buffer:
+                self.client.write("null\r\n")
+                time.sleep(1)
+                _detect = True
+                while _detect:
+                    _detect_buffer = ""
+                    _detect_buffer += self.client.read_some()
+
+                    if "Password:" in _detect_buffer:
+                        self.client.write(_args['password'] + "\r")
+                    if "login:" in _detect_buffer:
+                        self.client.write("%s\r\n" % _args['username'])
+                        _detect = False
+                    if "Name:" in _detect_buffer:
+                        self.client.write("%s\r\n" % _args['username'])
+                        _detect = False
+                time.sleep(0.1)
+                _timer += 1
+                if _timer >= 30:
+                    _detect = False
+
+            _detect = True
+            while _detect:
+                _detect_buffer = ""
+                _detect_buffer += self.client.read_some()
+
+                if "Password:" in _detect_buffer:
+                    break
+                if "password:" in _detect_buffer:
+                    break
+                time.sleep(0.1)
+                _timer += 1
+                if _timer >= 30:
+                    _detect = False
+
             self.client.write(_args['password'] + "\r")
             # Now we need to read some until we get > or #
             # to determine enable requirement
@@ -124,9 +170,33 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-                        self.client.write("skip\r")
-                        self.client.read_until("mode")
-                        self.client.read_until(self._hostname)
+                        self.client.write("show version | inc NOS\r")
+                        self.output = self.client.read_until(self._hostname)
+
+                        _tmp = io.BytesIO(self.output)
+                        self.count = 0
+
+                        while self.count < 1:
+                            _tmp.readline()
+                            self.count += 1
+                            # At this point, we're to the top of the stream and
+                            # beyond the hostname and socket output of the command
+
+                        _lines = _tmp.readlines()
+
+                        for _line in _lines:
+                            if 'NOS' in _line:
+                                _NOS_present = True
+
+                        if _NOS_present:
+                            self.client.write("terminal length 0\n")
+                            self.output = self.client.read_until(self._hostname)
+                            _detect = False
+                        else:
+                            self.client.write("skip\n")
+                            self.output = self.client.read_until(self._hostname)
+                            _detect = False
+
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 10:
@@ -184,9 +254,14 @@ class telnet(object):
                         # self.client.close()
 
                 if _detect is False:
-                    self.client.write("skip\r")
+                    self.client.write("skip\r\n")
                     self.client.read_until("mode")
                     self.client.read_until(self._hostname)
+                    # time.sleep(0.1)
+                    # self.client.write("terminal length 0\r\n")
+                    # self.client.read_until("mode")
+                    # self.client.read_until(self._hostname)
+                    # time.sleep(0.1)
 
             except Exception, err:
                 sys.stderr.write('\nERROR for host: %s - %s\n' %
@@ -196,6 +271,9 @@ class telnet(object):
 
                 self._error = True
                 return
+
+        self.client.write("\n")
+        self.output = self.client.read_until(self._hostname)
 
         logging.info("Telnet class instantiated")
 
@@ -230,7 +308,7 @@ class telnet(object):
         _string = ""
         _args = kwargs
         self.client.write("%s\r\n" % command)
-        self._read_data = self.client.read_until(self._hostname)
+        self._read_data = self.client.read_until(self._hostname.strip())
         self._temp_data = io.BytesIO(self._read_data)
         self._lines = self._temp_data.readlines()
         return_list = []
@@ -238,11 +316,10 @@ class telnet(object):
         for line in self._lines:
             if line != '\r\n' and line != self._hostname:
                 line = line.translate(None, '\r\n')
-                if line != command:
+                line = line.strip()
+                if command not in line:
                     return_list.append(line)
 
-        # PEP 8 fix
-        # if _args.has_key('return_type'):
         if "return_type" in _args:
             if _args.get('return_type') == 'string':
                 for line in return_list:
@@ -283,13 +360,15 @@ class telnet(object):
         self.client.write("\r")
         self._hostname = self.client.read_until("#")
         self._hostname = self._hostname.translate(None, '\r\n')
+        self._hostname = self._hostname.strip()
 
         # Let's figure out what our new prompt looks like
         self.client.write("%s\r\n" % "conf t")
-        self._config_hostname = self.client.read_until("#")
+        self.client.read_until("#")
         self.client.write("\r\n")
         self._config_hostname = self.client.read_until("#")
         self._config_hostname = self._config_hostname.translate(None, '\r\n')
+        self._config_hostname = self._config_hostname.strip()
 
         # At this point we should be in config mode. Let's send the commands
         # Also - the prompt can change (thanks devs). Let's ignore the prompt
@@ -300,15 +379,27 @@ class telnet(object):
             self.client.write("%s\r\n" % _command)
             time.sleep(0.5)
             self._temp_line = self.client.read_until(")#")
+
+            _tmp = io.BytesIO(self._temp_line)
+            self.count = 0
+
+            while self.count < 1:
+                _tmp.readline()
+                self.count += 1
+
+
+            self._config_hostname = _tmp.readline()
+
+            # print "DEBUG 0: %s " % self._temp_line
             self._response = self._temp_line
-            self._temp_line = self._temp_line.translate(None, '\r\n')
+            # self._temp_line = self._temp_line.translate(None, '\r\n')
             # print "[DEBUG 1] temp_line: " + self._temp_line
-            _marker1 = self._temp_line.find(self._hostname[:-1])
+            # _marker1 = self._temp_line.find(self._hostname[:-1])
             # print "[DEBUG 2] _marker1: " + str(_marker1)
-            _marker2 = self._temp_line.find(")#")
+            # _marker2 = self._temp_line.find(")#")
             # print "[DEBUG 3] _marker2: " + str(_marker2)
-            _marker2 += 1
-            self._config_hostname = self._temp_line[_marker1:_marker2+1]
+            # _marker2 += 1
+            # self._config_hostname = self._temp_line[_marker1:_marker2+1]
             # print "[DEBUG 4] config_hostname: " + self._config_hostname
 
             self._temp_data = io.BytesIO(self._response)
@@ -325,7 +416,6 @@ class telnet(object):
 
         self.client.write("%s\r\n" % "end")
         self.client.read_until(self._hostname)
-
         return _dict_response
 
     def close(self):
@@ -350,6 +440,7 @@ class ssh(object):
         _args = {}
         _opts = {}
         self._error = False
+        _NOS_present = False
         _t_args = kwargs
         if _t_args.get('setup'):
             if kwargs['setup'] is not None:
@@ -404,7 +495,31 @@ class ssh(object):
                 self.client_conn.send("\n")
                 self.output = self.blocking_recv()
                 self._hostname = self.output.translate(None, '\r\n')
-                self.client_conn.send("skip\n")
+                self.client_conn.sendall("show version\r\n")
+                self.output = self.blocking_recv()
+                self.output = self.blocking_recv()
+                # Simple check for NOS (VDX) or anything else
+
+                _tmp = io.BytesIO(self.output)
+                self.count = 0
+
+                while self.count < 1:
+                    _tmp.readline()
+                    self.count += 1
+                    # At this point, we're to the top of the stream and
+                    # beyond the hostname and socket output of the command
+
+                _lines = _tmp.readlines()
+
+                for _line in _lines:
+                    if 'NOS' in _line:
+                        _NOS_present = True
+
+                if _NOS_present:
+                    self.client_conn.send("terminal length 0\n")
+                else:
+                    self.client_conn.send("skip\n")
+
                 self.output = self.blocking_recv()
                 # self.client.close()
 

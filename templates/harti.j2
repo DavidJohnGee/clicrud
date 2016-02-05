@@ -1,0 +1,27 @@
+interface Ve {{ ve1.veint }}
+  vrf forwarding {{ ve1.vrf }}
+  ip address {{ ve1.ipaddr }}
+  no shutdown
+
+interface Ve {{ ve2.veint }}
+  vrf forwarding {{ ve2.vrf }}
+  ip address {{ ve2.ipaddr }}
+  no shutdown
+ 
+interface Ve {{ ve3.veint }}
+  vrf forwarding {{ ve3.vrf }}
+  ip address {{ ve3.ipaddr }}
+  no shutdown
+ 
+vrf {{ ve1.vrf }}
+   {% for route in ve1.static_routes -%}
+   ip route {{ route.prefix }} {{ route.nexthop }}
+   {% endfor %}
+vrf {{ ve2.vrf }}
+   {% for route in ve2.static_routes -%}
+   ip route {{ route.prefix }} {{ route.nexthop }}
+   {% endfor %}
+vrf {{ ve3.vrf }}
+   {% for route in ve3.static_routes -%}
+   ip route {{ route.prefix }} {{ route.nexthop }}
+   {% endfor %}
