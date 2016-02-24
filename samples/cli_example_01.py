@@ -21,6 +21,11 @@ from clicrud.crud import read
 
 if __name__ == '__main__':
 
+    # This script is pretty specific to connecting to one or a number of devices
+    # and polling them for information. You can do that repeatedly over time,
+    # or just as a one off.
+    # DO NOT USE THIS TO CONFIGURE DEVICES!!! Use the Pythonic examples.
+
     # Let's do some setting up
     # splash = True (for scripting - makes a pretty CLI
     # getpasswords = True - the CLI will prompt you for what's missing
