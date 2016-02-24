@@ -77,7 +77,6 @@ class telnet(object):
         try:
             while _detect:
                 _detect_buffer += self.client.read_some()
-                # print "DEBUG 1: %s" % _detect_buffer
                 if "Password:" in _detect_buffer:
                     self.client.write("null\r\n")
                     time.sleep(1)
@@ -110,7 +109,6 @@ class telnet(object):
             self.client.write("%s\r\n" % _args['username'])
             _detect_buffer = ""
             _detect_buffer += self.client.read_some()
-            # print "DEBUG 2: %s" % _detect_buffer
             # To deal with spurious VDX Telnet issues
             if 'Password:' in _detect_buffer:
                 self.client.write("null\r\n")
@@ -174,7 +172,7 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-                        self.client.write("show version | inc NOS\r")
+                        self.client.write("show version | inc NOS\n\r")
                         self.output = self.client.read_until(self._hostname)
 
                         _tmp = io.BytesIO(self.output)
@@ -189,16 +187,19 @@ class telnet(object):
                         _lines = _tmp.readlines()
 
                         for _line in _lines:
+                            if ' inc NOS' in _line:
+                                continue
                             if 'NOS' in _line:
                                 _NOS_present = True
 
-                        if _NOS_present:
+                        if _NOS_present is True:
                             self.client.write("terminal length 0\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
                             continue
-                        else:
-                            self.client.write("skip\n")
+
+                        if _NOS_present is False:
+                            self.client.write("skip\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
                             continue
@@ -222,7 +223,7 @@ class telnet(object):
             _detect = True
             _detect_buffer = ""
             _timer = 0
-            self.client.write("en\r")
+            self.client.write("en\n\r")
             try:
                 while _detect:
                     _detect_buffer += self.client.read_some()
@@ -261,31 +262,27 @@ class telnet(object):
                         # self.client.close()
 
                 if _detect is False:
-                        self.client.write("show version | inc NOS\r")
+                        self.client.write("show version | inc NOS\r\n")
                         self.output = self.client.read_until(self._hostname)
 
                         _tmp = io.BytesIO(self.output)
                         self.count = 0
 
-
-                        #while self.count < 1:
-                        #    _tmp.readline()
-                        #    self.count += 1
-                            # At this point, we're to the top of the stream and
-                            # beyond the hostname and socket output of the command
-
                         _lines = _tmp.readlines()
 
                         for _line in _lines:
+                            if ' inc NOS' in _line:
+                                continue
                             if 'NOS' in _line:
                                 _NOS_present = True
 
                         if _NOS_present:
-                            self.client.write("terminal length 0\r")
+                            self.client.write("terminal length 0\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
-                        else:
-                            self.client.write("skip\r")
+
+                        if _NOS_present is False:
+                            self.client.write("skip\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
 
@@ -417,7 +414,6 @@ class telnet(object):
 
             self._config_hostname = _tmp.readline()
 
-            # print "DEBUG 0: %s " % self._temp_line
             self._response = self._temp_line
             self._temp_data = io.BytesIO(self._response)
             self._lines = self._temp_data.readlines()
@@ -526,6 +522,8 @@ class ssh(object):
                 _lines = _tmp.readlines()
 
                 for _line in _lines:
+                    if ' inc NOS' in _line:
+                        continue
                     if 'NOS' in _line:
                         _NOS_present = True
 
@@ -643,7 +641,6 @@ class ssh(object):
         self.client_conn.send("\n")
         self._config_hostname = self.blocking_recv('#')
         self._config_hostname = self._config_hostname.translate(None, '\r\n')
-        # print "[DEBUG] self._config_hostname: " + self._config_hostname
 
         # At this point we should be in config mode. Let's send the commands
         # Also - the prompt can change (thanks devs). Let's ignore the prompt

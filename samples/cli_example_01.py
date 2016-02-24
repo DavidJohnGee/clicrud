@@ -58,7 +58,7 @@ if __name__ == '__main__':
                               listofcommands="commands.txt",
                               fileoutput=True,
                               fileformat='string',
-                              method='telnet',
+                              method='ssh',
                               username="admin",
                               host="192.168.10.52",
                               password="Passw0rd",

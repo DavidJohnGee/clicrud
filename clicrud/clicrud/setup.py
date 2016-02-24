@@ -141,7 +141,6 @@ class setup(object):
         print "\n------Progress------\n"
 
     def start_processes(self):
-        # TODO: Insert parallel and linear handling of tasks
         for _idx, _t in enumerate(self._thread_list):
             _t.start()
             self._pid_list.append(_t.getPID())
