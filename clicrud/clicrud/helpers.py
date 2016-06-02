@@ -1,4 +1,3 @@
-#!/usr/bin/python
 """
 Copyright 2015 Brocade Communications Systems, Inc.
 
