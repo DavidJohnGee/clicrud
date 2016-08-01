@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Copyright 2015 Brocade Communications Systems, Inc.
 
@@ -43,11 +44,8 @@ class telnet(object):
 
         _args.update(_t_args)
 
-<<<<<<< HEAD
         # PEP8 fix
         # if _args.has_key('port'):
-=======
->>>>>>> 0ca41a9ba2bdb79b7123ea285a878047c694cb9a
         # Check for port value. If it doesn't exist, or is None, default to 23
         if _args.get('port'):
             if _args['port'] is None:
@@ -497,11 +495,7 @@ class ssh(object):
 
         _args.update(_t_args)
 
-<<<<<<< HEAD
         # Check for port value. If it doesn't exist, default to 22
-=======
-        # Check for port value. If it doesn't exist, or is None, default to 22
->>>>>>> 0ca41a9ba2bdb79b7123ea285a878047c694cb9a
         if _args.get('port'):
             if _args['port'] is None:
                 _args['port'] = 22
