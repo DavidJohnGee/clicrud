@@ -30,7 +30,8 @@ class telnet(object):
         _opts = {}
         self._error = False
         self.output = ""
-        _NOS_present = False
+        self._NOS_present = False
+        self._hostname = ""
         _t_args = kwargs
         if _t_args.get('setup'):
             if kwargs['setup'] is not None:
@@ -182,7 +183,8 @@ class telnet(object):
                             _tmp.readline()
                             self.count += 1
                             # At this point, we're to the top of the stream and
-                            # beyond the hostname and socket output of the command
+                            # beyond the hostname and socket output of the
+                            # command
 
                         _lines = _tmp.readlines()
 
@@ -190,19 +192,20 @@ class telnet(object):
                             if ' inc NOS' in _line:
                                 continue
                             if 'NOS' in _line:
-                                _NOS_present = True
+                                self._NOS_present = True
+                                break
 
-                        if _NOS_present is True:
+                        if self._NOS_present is True:
                             self.client.write("terminal length 0\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
-                            continue
+                            # continue
 
-                        if _NOS_present is False:
+                        if self._NOS_present is False:
                             self.client.write("skip\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
-                            continue
+                            # continue
 
                     time.sleep(0.1)
                     _timer += 1
@@ -274,14 +277,15 @@ class telnet(object):
                             if ' inc NOS' in _line:
                                 continue
                             if 'NOS' in _line:
-                                _NOS_present = True
+                                self._NOS_present = True
+                                break
 
-                        if _NOS_present:
+                        if self._NOS_present:
                             self.client.write("terminal length 0\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
 
-                        if _NOS_present is False:
+                        if self._NOS_present is False:
                             self.client.write("skip\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
@@ -331,11 +335,25 @@ class telnet(object):
 
         _string = ""
         _args = kwargs
-        self.client.write("%s\r\n" % command)
+        if self._NOS_present is True:
+            self.client.write("%s\r\n" % command)
+            # Bug fix for no response on VDXs.
+            # The first line of output was actually the hostname :( Oops
+            self._read_data = self.client.read_until(self._hostname.strip())
+        if self._NOS_present is False:
+            self.client.write("%s\r\n" % command)
+
         self._read_data = self.client.read_until(self._hostname.strip())
         self._temp_data = io.BytesIO(self._read_data)
         self._lines = self._temp_data.readlines()
+        # print(self._lines)
         return_list = []
+
+
+        if self._NOS_present:
+            self.client.write("\r\n")
+            self.client.write("\r\n")
+            self.client.read_until(self._hostname)
 
         for line in self._lines:
             if line != '\r\n' and line != self._hostname:
@@ -380,7 +398,7 @@ class telnet(object):
         for _command in _commands:
             _dict_response[_command] = ''
 
-        # Lets get the latest hostname. You know what sysadmins are like!
+        # Lets get the latest hostname. It could have changed
         self.client.write("\r")
         self._hostname = self.client.read_until("#")
         self._hostname = self._hostname.translate(None, '\r\n')
@@ -388,6 +406,8 @@ class telnet(object):
 
         # Let's figure out what our new prompt looks like
         self.client.write("%s\r\n" % "conf t")
+        self.client.read_until("#")
+        self.client.write("\r\n")
         self.client.read_until("#")
         self.client.write("\r\n")
         self._config_hostname = self.client.read_until("#")
@@ -400,9 +420,14 @@ class telnet(object):
 
         self._mass_data = ""
         for _command in _commands:
+            self.client.write("\r\n")
+            self._temp_line = self.client.read_until(")#")
             self.client.write("%s\r\n" % _command)
             time.sleep(0.5)
             self._temp_line = self.client.read_until(")#")
+
+            if self._NOS_present is True:
+                self._temp_line = self.client.read_until(")#")
 
             _tmp = io.BytesIO(self._temp_line)
             self.count = 0
@@ -410,7 +435,6 @@ class telnet(object):
             while self.count < 1:
                 _tmp.readline()
                 self.count += 1
-
 
             self._config_hostname = _tmp.readline()
 
@@ -424,8 +448,14 @@ class telnet(object):
                 if _command not in _line and ')#' not in _line:
                     _dict_response[_command] = _line
 
+
+
         self.client.write("%s\r\n" % "end")
         self.client.read_until(self._hostname)
+        if self._NOS_present:
+            self.client.write("\r\n")
+            self.client.write("\r\n")
+            self.client.read_until(self._hostname)
         return _dict_response
 
     def close(self):
@@ -450,7 +480,7 @@ class ssh(object):
         _args = {}
         _opts = {}
         self._error = False
-        _NOS_present = False
+        self._NOS_present = False
         _t_args = kwargs
         if _t_args.get('setup'):
             if kwargs['setup'] is not None:
@@ -525,9 +555,10 @@ class ssh(object):
                     if ' inc NOS' in _line:
                         continue
                     if 'NOS' in _line:
-                        _NOS_present = True
+                        self._NOS_present = True
+                        break
 
-                if _NOS_present:
+                if self._NOS_present:
                     self.client_conn.send("terminal length 0\n")
                 else:
                     self.client_conn.send("skip\n")
@@ -630,7 +661,7 @@ class ssh(object):
         for _command in _commands:
             _dict_response[_command] = ''
 
-        # Lets get the latest hostname. You know what sysadmins are like!
+        # Lets get the latest hostname. It could have changed
         self.client_conn.send("\n")
         self._hostname = self.blocking_recv('#')
         self._hostname = self._hostname.translate(None, '\r\n')
