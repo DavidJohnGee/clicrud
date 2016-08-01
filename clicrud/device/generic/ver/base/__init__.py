@@ -520,6 +520,8 @@ class ssh(object):
             time.sleep(0.5)
             self.output = self.blocking_recv()
 
+
+
             if ">" in self.output:
                 self.client_conn.send("en\n")
                 self.output = self.blocking_recv()
@@ -535,9 +537,9 @@ class ssh(object):
                 self.client_conn.send("\n")
                 self.output = self.blocking_recv()
                 self._hostname = self.output.translate(None, '\r\n')
-                self.client_conn.sendall("show version\r\n")
+                self.client_conn.sendall("show version | inc NOS\r\n")
                 self.output = self.blocking_recv()
-                self.output = self.blocking_recv()
+                # self.output = self.blocking_recv()
                 # Simple check for NOS (VDX) or anything else
 
                 _tmp = io.BytesIO(self.output)
@@ -662,14 +664,17 @@ class ssh(object):
             _dict_response[_command] = ''
 
         # Lets get the latest hostname. It could have changed
-        self.client_conn.send("\n")
-        self._hostname = self.blocking_recv('#')
-        self._hostname = self._hostname.translate(None, '\r\n')
+        self.client_conn.send("\r\n")
+        # print("DEBUG: Hostname is \n%s" % self._hostname)
+        self.blocking_recv('#')
+        # self._hostname = self.blocking_recv('#')
+        # self._hostname = self._hostname.translate(None, '\r\n')
+        # print("DEBUG: Hostname is \n%s" % self._hostname)
 
         # Let's figure out what our new prompt looks like
         self.client_conn.send("%s\r\n" % "conf t")
         self._config_hostname = self.blocking_recv("#")
-        self.client_conn.send("\n")
+        self.client_conn.send("\r\n")
         self._config_hostname = self.blocking_recv('#')
         self._config_hostname = self._config_hostname.translate(None, '\r\n')
 
