@@ -42,10 +42,10 @@ class telnet(object):
 
         _args.update(_t_args)
 
-        # PEP8 fix
-        # if _args.has_key('port'):
-        if "port" in _args:
-            pass
+        # Check for port value. If it doesn't exist, or is None, default to 23
+        if _args.get('port'):
+            if _args['port'] is None:
+                _args['port'] = 23
         else:
             _args['port'] = 23
 
@@ -462,9 +462,10 @@ class ssh(object):
 
         _args.update(_t_args)
 
-        # Check for port value. If it doesn't exist, default to 22
-        if "port" in _args:
-            pass
+        # Check for port value. If it doesn't exist, or is None, default to 22
+        if _args.get('port'):
+            if _args['port'] is None:
+                _args['port'] = 22
         else:
             _args['port'] = 22
 
