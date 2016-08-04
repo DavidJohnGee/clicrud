@@ -47,10 +47,12 @@ transport = generic(host=VDX, username="admin", enable="password",
                     method="ssh", password="password")
 
 print "\r\n===Show VLAN brief:"
+# Return_type can either be a string or list. One is better for scripts,
+# the other better for automation perhaps!
 print transport.read("show vlan brief", return_type="string")
 
 
-print "===Configuration data and feedback:"
+print "\r\n===Configuration data and feedback:"
 print transport.configure(["no protocol vrrp"])
 
 
