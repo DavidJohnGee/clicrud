@@ -175,30 +175,18 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-                        self.client.write("show version | inc NOS\n\r")
+
+                        vercheck = self.read("show version | inc NOS", return_type="string")
+
+                        # Need this to clear the receive buffer
+                        self.client.write("\n\r")
                         self.output = self.client.read_until(self._hostname)
 
-                        _tmp = io.BytesIO(self.output)
-                        self.count = 0
-
-                        while self.count < 1:
-                            _tmp.readline()
-                            self.count += 1
-                            # At this point, we're to the top of the stream and
-                            # beyond the hostname and socket output of the
-                            # command
-
-                        _lines = _tmp.readlines()
-
-                        for _line in _lines:
-                            if ' inc NOS' in _line:
-                                continue
-                            if 'NOS' in _line:
-                                self._NOS_present = True
-                                break
+                        if 'NOS' in vercheck:
+                            self._NOS_present = True
 
                         if self._NOS_present is True:
-                            self.client.write("terminal length 0\n")
+                            self.client.write("terminal length 0\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
                             # continue
@@ -267,30 +255,25 @@ class telnet(object):
                         # self.client.close()
 
                 if _detect is False:
-                        self.client.write("show version | inc NOS\r\n")
+
+                    tmp = self.read("show version | inc NOS", return_type="string")
+
+                    # Need this to clear the receive buffer
+                    self.client.write("\n\r")
+                    self.output = self.client.read_until(self._hostname)
+
+                    if 'NOS' in tmp:
+                        self._NOS_present = True
+
+                    if self._NOS_present:
+                        self.client.write("terminal length 0\r\n")
                         self.output = self.client.read_until(self._hostname)
+                        _detect = False
 
-                        _tmp = io.BytesIO(self.output)
-                        self.count = 0
-
-                        _lines = _tmp.readlines()
-
-                        for _line in _lines:
-                            if ' inc NOS' in _line:
-                                continue
-                            if 'NOS' in _line:
-                                self._NOS_present = True
-                                break
-
-                        if self._NOS_present:
-                            self.client.write("terminal length 0\r\n")
-                            self.output = self.client.read_until(self._hostname)
-                            _detect = False
-
-                        if self._NOS_present is False:
-                            self.client.write("skip\r\n")
-                            self.output = self.client.read_until(self._hostname)
-                            _detect = False
+                    if self._NOS_present is False:
+                        self.client.write("skip\r\n")
+                        self.output = self.client.read_until(self._hostname)
+                        _detect = False
 
 
             except Exception, err:
@@ -540,33 +523,18 @@ class ssh(object):
                 self.client_conn.send("\n")
                 self.output = self.blocking_recv()
                 self._hostname = self.output.translate(None, '\r\n')
-                self.client_conn.sendall("show version | inc NOS\r\n")
-                self.output = self.blocking_recv()
-                # self.output = self.blocking_recv()
-                # Simple check for NOS (VDX) or anything else
 
-                _tmp = io.BytesIO(self.output)
-                self.count = 0
+                self.client_conn.sendall("show version | inc NOS\n")
 
-                while self.count < 1:
-                    _tmp.readline()
-                    self.count += 1
-                    # At this point, we're to the top of the stream and
-                    # beyond the hostname and socket output of the command
+                tmp = self.read("show version | inc NOS", return_type="string")
 
-                _lines = _tmp.readlines()
-
-                for _line in _lines:
-                    if ' inc NOS' in _line:
-                        continue
-                    if 'NOS' in _line:
-                        self._NOS_present = True
-                        break
+                if 'NOS' in tmp:
+                    self._NOS_present = True
 
                 if self._NOS_present:
-                    self.client_conn.send("terminal length 0\n")
+                    self.client_conn.send("terminal length 0\r\n")
                 else:
-                    self.client_conn.send("skip\n")
+                    self.client_conn.send("skip\r\n")
 
                 self.output = self.blocking_recv()
                 # self.client.close()
