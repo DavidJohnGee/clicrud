@@ -34,6 +34,35 @@ There are a number of ways to actually use this library. Check the samples direc
 
 There will be some YouTube videos to follow. Links will be posted here.
 
+The test script below uses the 'library' aspect of CLICRUD. This means you can talk CLI easily to MLX, ICX and VDX devices without worrying about authentication steps or stages. Feed the information in and if the authentication sequence needs the information, it will be consumed. Therefore a device without any authentication can have empty fields. For automation consistency, please enter the fields.
+
+```Python
+from clicrud.device.generic import generic
+
+MLX = "x.x.x.x"
+ICX = "y.y.y.y"
+VDX = "z.z.z.z"
+
+transport = generic(host=VDX, username="admin", enable="password",
+                    method="ssh", password="password")
+
+print "\r\n===Show VLAN brief:"
+print transport.read("show vlan brief", return_type="string")
+
+
+print "===Configuration data and feedback:"
+print transport.configure(["no protocol vrrp"])
+
+
+print "\r\n===Show interface:"
+print transport.read("show interface", return_type="string")
+
+
+
+# print transport.protocol
+# print transport.connected
+transport.close()
+```
 ##License
 CLICRUD is released under the APACHE 2.0 license. See ./LICENSE for more
 information.
