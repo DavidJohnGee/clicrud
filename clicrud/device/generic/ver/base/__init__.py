@@ -326,18 +326,24 @@ class telnet(object):
             # The first line of output was actually the hostname :( Oops
             self._read_data = self.client.read_until(self._hostname.strip())
         if self._NOS_present is False:
+            self.client.write("\r\n")
+            self._read_data = self.client.read_until(self._hostname.strip())
+            self.client.write("%s\r\n" % command)
+            self._read_data = self.client.read_until(self._hostname.strip())
             self.client.write("%s\r\n" % command)
 
         self._read_data = self.client.read_until(self._hostname.strip())
+
         self._temp_data = io.BytesIO(self._read_data)
         self._lines = self._temp_data.readlines()
-        # print(self._lines)
         return_list = []
 
 
         if self._NOS_present:
             self.client.write("\r\n")
             self.client.write("\r\n")
+            self.client.read_until(self._hostname)
+            self.client.write("\n")
             self.client.read_until(self._hostname)
 
         for line in self._lines:
