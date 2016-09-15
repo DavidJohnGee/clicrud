@@ -679,7 +679,7 @@ class ssh(object):
                     _dict_response[_command] = _line
 
         self.client_conn.send("%s\r\n" % "end")
-        self.blocking_recv(self._hostname)
+        self.blocking_recv("#")
 
         return _dict_response
 
