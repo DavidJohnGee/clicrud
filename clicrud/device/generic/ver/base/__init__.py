@@ -390,7 +390,7 @@ class telnet(object):
             _dict_response[_command] = ''
 
         # Lets get the latest hostname. It could have changed
-        self.client.write("\r")
+        self.client.write("\r\n")
         self._hostname = self.client.read_until("#")
         self._hostname = self._hostname.translate(None, '\r\n')
         self._hostname = self._hostname.strip()
@@ -442,7 +442,7 @@ class telnet(object):
 
 
         self.client.write("%s\r\n" % "end")
-        self.client.read_until(self._hostname)
+        self.client.read_until("#")
         if self._NOS_present:
             self.client.write("\r\n")
             self.client.write("\r\n")
