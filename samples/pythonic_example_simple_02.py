@@ -17,35 +17,35 @@ limitations under the License.
 
 from clicrud.device.generic import generic
 
-ICX = '10.18.254.67'
+ICX = '192.168.10.52'
 vR = '192.168.45.20'
 
 icxTransport = generic(host=ICX, username="admin", enable="password",
                     method="ssh", password="password")
 
-vRTransport = generic(host=vR, username="admin", method="ssh", b64password="password")
+vRTransport = generic(host=vR, username="vyatta", method="ssh", b64password="dnlhdHRh")
 
 print "===ICX Configuration data and feedback:"
 
 # Returns a dict with commands and responses as key/values
-"""print transport.configure([
-                           "vlan 100 name Bob",
-                           "untagged eth 1/1/15"
-                           ])
-"""
+if icxTransport.connected:
+    print icxTransport.configure([
+                               "vlan 100 name Bob",
+                               "untagged eth 1/1/15"
+                              ])
+
 
 print "\r\n===ICX Show VLAN brief:"
-print icxTransport.read("show vlan brief", return_type="string")
+if icxTransport.connected:
+    print icxTransport.read("show vlan brief", return_type="string")
+    icxTransport.close()
+    # print icxTransport.protocol
+    # print icxTransport.connected
+    # Note - no need to enter 'skip'. Pagination is turned off by code.
 
-# Note - no need to enter 'skip'. Pagination is turned off by code.
 
-# print icxTransport.protocol
-# print icxTransport.connected
-icxTransport.close()
+print "\r\n===vRouter Show Version:"
 
-vRTransport = generic(host=vR, username="admin", method="ssh", b64password="password")
-
-print "===vRouter Show Version:"
-
-print vRTransport.read("show version", return_type="string")
-vRTransport.close()
+if vRTransport.connected:
+    print vRTransport.read("show version", return_type="string")
+    vRTransport.close()

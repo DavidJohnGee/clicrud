@@ -21,6 +21,8 @@ import telnetlib
 import io
 import logging
 import sys
+import re
+import base64
 
 
 class telnet(object):
@@ -31,6 +33,8 @@ class telnet(object):
         self._error = False
         self.output = ""
         self._NOS_present = False
+        self._VYATTA_present = False
+        self._clean_ansi = re.compile(r'((\x9B |\x1B\[)[0 -?]*[-\ /]*[ @ -~])|=')
         self._hostname = ""
         _t_args = kwargs
         if _t_args.get('setup'):
@@ -44,8 +48,12 @@ class telnet(object):
 
         _args.update(_t_args)
 
-        # PEP8 fix
-        # if _args.has_key('port'):
+        if 'b64password' in _args:
+            _args['password'] = base64.b64decode(_args['b64password'])
+
+        if 'b64enable' in _args:
+            _args['enable'] = base64.b64decode(_args['b64enable'])
+
         # Check for port value. If it doesn't exist, or is None, default to 23
         if _args.get('port'):
             if _args['port'] is None:
@@ -80,15 +88,19 @@ class telnet(object):
         try:
             while _detect:
                 _detect_buffer += self.client.read_some()
-                if "Password:" in _detect_buffer:
+                _detect_buffer = _detect_buffer.lower()
+                if "password:" in _detect_buffer:
                     self.client.write("null\r\n")
                     time.sleep(1)
                     _detect_buffer = ""
                     continue
-                if "Name:" in _detect_buffer:
+                if "name:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
                 if "login:" in _detect_buffer:
+                    self._send_username = True
+                    _detect = False
+                if "login" in _detect_buffer:
                     self._send_username = True
                     _detect = False
                 if ">" in _detect_buffer:
@@ -109,46 +121,56 @@ class telnet(object):
 
         # Now we know whether we need to send a username or enable password
         if self._send_username:
-            self.client.write("%s\r\n" % _args['username'])
+            if self._VYATTA_present:
+                self.client.write("%s\n" % _args['username'])
+            else:
+                self.client.write("%s\r\n" % _args['username'])
             _detect_buffer = ""
             _detect_buffer += self.client.read_some()
+            _detect_buffer = _detect_buffer.lower()
+
             # To deal with spurious VDX Telnet issues
-            if 'Password:' in _detect_buffer:
+            if 'password' and 'login' in _detect_buffer:
                 self.client.write("null\r\n")
                 time.sleep(0.5)
                 _detect = True
                 while _detect:
                     _detect_buffer = ""
                     _detect_buffer += self.client.read_some()
-                    if "Password:" in _detect_buffer:
+                    _detect_buffer = _detect_buffer.lower()
+                    if "password" in _detect_buffer:
                         self.client.write(_args['password'] + "\r")
-                    if "login:" in _detect_buffer:
+                        _detect = False
+                    if "login" in _detect_buffer:
                         self.client.write("%s\r\n" % _args['username'])
                         _detect = False
-                    if "Name:" in _detect_buffer:
+                    if "name" in _detect_buffer:
                         self.client.write("%s\r\n" % _args['username'])
                         _detect = False
-                time.sleep(0.1)
-                _timer += 1
-                if _timer >= 240:
-                    _detect = False
+                if _detect:
+                    time.sleep(0.1)
+                    _timer += 1
+                    if _timer >= 240:
+                        _detect = False
             _detect = True
             while _detect:
                 _detect_buffer = ""
                 _detect_buffer += self.client.read_some()
+                _detect_buffer = _detect_buffer.lower()
 
-                if "Password:" in _detect_buffer:
+                if "password" in _detect_buffer:
+                    _detect = False
                     break
-                    _detect = False
-                if "password:" in _detect_buffer:
-                    break
-                    _detect = False
-                time.sleep(0.1)
-                _timer += 1
-                if _timer >= 240:
-                    _detect = False
+                if _detect:
+                    time.sleep(0.1)
+                    _timer += 1
+                    if _timer >= 240:
+                        _detect = False
 
-            self.client.write(_args['password'] + "\r")
+            if self._VYATTA_present:
+                self.client.write(_args['password'] + "\n")
+            else:
+                self.client.write(_args['password'] + "\r")
             # Now we need to read some until we get > or #
             # to determine enable requirement
             _detect = True
@@ -191,16 +213,27 @@ class telnet(object):
                             _detect = False
                             # continue
 
-                        if self._NOS_present is False:
+                        if self._NOS_present is False and self._VYATTA_present is False:
                             self.client.write("skip\r\n")
                             self.output = self.client.read_until(self._hostname)
                             _detect = False
-                            # continue
 
-                    time.sleep(0.1)
-                    _timer += 1
-                    if _timer >= 10:
+                    if "$" in _detect_buffer:
+                        self._send_enable = False
                         _detect = False
+                        # Takes in to account exec banner
+                        self.client.read_until("$", timeout=1)
+                        # Do this to get a clean prompt
+                        self.client.write("\r")
+                        self._hostname = self.client.read_until("$")
+                        self._hostname = self._hostname.translate(None, '\r\n ')
+                        self._VYATTA_present = True
+
+                    if _detect:
+                        time.sleep(0.1)
+                        _timer += 1
+                        if _timer >= 10:
+                            _detect = False
 
             except Exception, err:
                 sys.stderr.write('\nERROR for host: %s - %s\n' %
@@ -220,6 +253,7 @@ class telnet(object):
             try:
                 while _detect:
                     _detect_buffer += self.client.read_some()
+                    _detect_buffer = _detect_buffer.lower()
                     if "#" in _detect_buffer:
                         # Takes in to account exec banner
                         self.client.read_until("#", timeout=1.5)
@@ -229,7 +263,7 @@ class telnet(object):
                         self._hostname = self._hostname.translate(None, '\r\n')
                         _detect = False
                         break
-                    if "Password:" in _detect_buffer:
+                    if "password" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
                         self.client.write(_args['enable'] + "\r")
@@ -243,16 +277,14 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-                        # self.client.write("skip\r")
-                        # self.client.read_until("mode")
-                        # self.client.read_until(self._hostname)
+
                         break
 
-                    time.sleep(0.1)
-                    _timer += 1
-                    if _timer >= 30:
-                        _detect = False
-                        # self.client.close()
+                    if _detect:
+                        time.sleep(0.1)
+                        _timer += 1
+                        if _timer >= 30:
+                            _detect = False
 
                 if _detect is False:
 
@@ -325,14 +357,18 @@ class telnet(object):
             # Bug fix for no response on VDXs.
             # The first line of output was actually the hostname :( Oops
             self._read_data = self.client.read_until(self._hostname.strip())
-        if self._NOS_present is False:
+
+        if self._VYATTA_present is True:
+            self.client.write("%s | no-more\n" % command)
+            self._read_data = self.client.read_until(self._hostname.strip())
+
+        if self._NOS_present is False and self._VYATTA_present is False:
             self.client.write("\r\n")
             self._read_data = self.client.read_until(self._hostname.strip())
             self.client.write("%s\r\n" % command)
             self._read_data = self.client.read_until(self._hostname.strip())
             self.client.write("%s\r\n" % command)
-
-        self._read_data = self.client.read_until(self._hostname.strip())
+            self._read_data = self.client.read_until(self._hostname.strip())
 
         self._temp_data = io.BytesIO(self._read_data)
         self._lines = self._temp_data.readlines()
@@ -350,7 +386,8 @@ class telnet(object):
             if line != '\r\n' and line != self._hostname:
                 line = line.translate(None, '\r\n')
                 line = line.strip()
-                if command not in line:
+                line = self._clean_ansi.sub('', line)
+                if command not in line and self._hostname not in line:
                     return_list.append(line)
 
         if "return_type" in _args:
@@ -391,62 +428,110 @@ class telnet(object):
 
         # Lets get the latest hostname. It could have changed
         self.client.write("\r\n")
-        self._hostname = self.client.read_until("#")
-        self._hostname = self._hostname.translate(None, '\r\n')
+        if self._VYATTA_present:
+            self._hostname = self.client.read_until("$")
+        else:
+            self._hostname = self.client.read_until("#")
+        self._hostname = self._hostname.translate(None, '\r\n ')
         self._hostname = self._hostname.strip()
 
         # Let's figure out what our new prompt looks like
-        self.client.write("%s\r\n" % "conf t")
+        if self._VYATTA_present:
+            self.client.write("%s\n" % "configure")
+        else:
+            self.client.write("%s\r\n" % "conf t")
+
         self.client.read_until("#")
         self.client.write("\r\n")
         self.client.read_until("#")
         self.client.write("\r\n")
         self._config_hostname = self.client.read_until("#")
-        self._config_hostname = self._config_hostname.translate(None, '\r\n')
+        self._config_hostname = self._config_hostname.translate(None, '\r\n ')
         self._config_hostname = self._config_hostname.strip()
+        if self._VYATTA_present:
+            self._config_hostname = self._config_hostname.replace('[edit]', '')
+
 
         # At this point we should be in config mode. Let's send the commands
         # Also - the prompt can change (thanks devs). Let's ignore the prompt
         # only save the actual output.
 
-        self._mass_data = ""
-        for _command in _commands:
-            self.client.write("\r\n")
-            self._temp_line = self.client.read_until(")#")
-            self.client.write("%s\r\n" % _command)
-            time.sleep(0.5)
-            self._temp_line = self.client.read_until(")#")
-
-            if self._NOS_present is True:
+        if not self._VYATTA_present:
+            self._mass_data = ""
+            for _command in _commands:
+                self.client.write("\r\n")
+                self._temp_line = self.client.read_until(")#")
+                self.client.write("%s\r\n" % _command)
+                time.sleep(0.5)
                 self._temp_line = self.client.read_until(")#")
 
-            _tmp = io.BytesIO(self._temp_line)
-            self.count = 0
+                if self._NOS_present is True:
+                    self._temp_line = self.client.read_until(")#")
 
-            while self.count < 1:
-                _tmp.readline()
-                self.count += 1
+                _tmp = io.BytesIO(self._temp_line)
+                self.count = 0
 
-            self._config_hostname = _tmp.readline()
+                while self.count < 1:
+                    _tmp.readline()
+                    self.count += 1
 
-            self._response = self._temp_line
-            self._temp_data = io.BytesIO(self._response)
-            self._lines = self._temp_data.readlines()
+                self._config_hostname = _tmp.readline()
 
-            # Let's strip out the whitespace
-            for _val, _line in enumerate(self._lines):
+                self._response = self._temp_line
+                self._temp_data = io.BytesIO(self._response)
+                self._lines = self._temp_data.readlines()
 
-                if _command not in _line and ')#' not in _line:
-                    _dict_response[_command] = _line
+                # Let's strip out the whitespace
+                for _val, _line in enumerate(self._lines):
+
+                    if _command not in _line and ')#' not in _line:
+                        _dict_response[_command] = _line
 
 
 
-        self.client.write("%s\r\n" % "end")
-        self.client.read_until("#")
-        if self._NOS_present:
-            self.client.write("\r\n")
-            self.client.write("\r\n")
-            self.client.read_until(self._hostname)
+            self.client.write("%s\r\n" % "end")
+            self.client.read_until("#")
+            if self._NOS_present:
+                self.client.write("\r\n")
+                self.client.write("\r\n")
+                self.client.read_until(self._hostname)
+
+        if self._VYATTA_present:
+            self._mass_data = ""
+            for _command in _commands:
+                self.client.write("\n")
+                self._temp_line = self.client.read_until(self._config_hostname)
+                self.client.write("%s\n" % _command)
+                time.sleep(0.1)
+                self._temp_line = self.client.read_until(self._config_hostname)
+
+                _tmp = io.BytesIO(self._temp_line)
+                self.count = 0
+
+                while self.count < 1:
+                    _tmp.readline()
+                    self.count += 1
+
+                self._response = self._temp_line
+                self._temp_data = io.BytesIO(self._response)
+                self._lines = self._temp_data.readlines()
+
+                # Let's strip out the whitespace
+                _tmplines = ""
+                _tmpline = ""
+                for _val, _line in enumerate(self._lines):
+                    if _command not in _line and self._config_hostname not in _line and '[edit]' not in _line:
+                        _tmpline = _line.translate(None, '\r\n')
+                        _tmpline = _tmpline.strip()
+                        if _tmpline != '':
+                            _tmplines = _tmplines + _tmpline + "\r\n"
+
+
+                _dict_response[_command] = _tmplines
+
+            self.client.write("%s\n" % "commit")
+            self.client.read_until(self._config_hostname)
+
         return _dict_response
 
     def close(self):
@@ -472,6 +557,9 @@ class ssh(object):
         _opts = {}
         self._error = False
         self._NOS_present = False
+        self._VYATTA_present = False
+        self._clean_ansi = re.compile(r'((\x9B |\x1B\[)[0 -?]*[-\ /]*[ @ -~])|=')
+
         _t_args = kwargs
         if _t_args.get('setup'):
             if kwargs['setup'] is not None:
@@ -483,6 +571,12 @@ class ssh(object):
             _args['splash'] = False
 
         _args.update(_t_args)
+
+        if 'b64password' in _args:
+            _args['password'] = base64.b64decode(_args['b64password'])
+
+        if 'b64enable' in _args:
+            _args['enable'] = base64.b64decode(_args['b64enable'])
 
         # Check for port value. If it doesn't exist, default to 22
         if _args.get('port'):
@@ -545,6 +639,16 @@ class ssh(object):
                 self.output = self.blocking_recv()
                 # self.client.close()
 
+            # vRouter add in
+            if "$" in self.output:
+                self.client_conn.send("\n")
+                self.output = self.blocking_recv()
+                self._hostname = self.output.translate(None, '\r\n')
+                self.client_conn.send("\n")
+                self.output = self.blocking_recv()
+                self._hostname = self.output.translate(None, '\r\n')
+                self._VYATTA_present = True
+
         except Exception, err:
             sys.stderr.write('\nERROR for host: %s - %s\n' %
                              (_args['host'], str(err)))
@@ -586,7 +690,12 @@ class ssh(object):
             _args = kwargs
             _returnlist = []
             _string = ""
-            self.client_conn.send(command + "\n")
+
+            if self._VYATTA_present:
+                self.client_conn.send(command + " | no-more \n")
+            else:
+                self.client_conn.send(command + "\n")
+
             self.output = self.blocking_recv(self._hostname)
             stream = io.BytesIO(self.output)
             self.count = 0
@@ -601,9 +710,14 @@ class ssh(object):
                 if line != '\r\n' and line != self._hostname:
                     line = line.translate(None, '\r\n')
                     if line != command:
-                        _returnlist.append(line)
-            # PEP8 fix
-            # if _args.has_key('return_type'):
+                        # remove ANSI escape sequences :(
+                        line = self._clean_ansi.sub('', line)
+
+                        if self._hostname not in line:
+                            _returnlist.append(line)
+
+
+
             if "return_type" in _args:
                 if _args.get('return_type') == 'string':
                     for line in _returnlist:
@@ -640,48 +754,103 @@ class ssh(object):
         for _command in _commands:
             _dict_response[_command] = ''
 
-        # Lets get the latest hostname. It could have changed
-        self.client_conn.send("\r\n")
-        # print("DEBUG: Hostname is \n%s" % self._hostname)
-        self.blocking_recv('#')
-        # self._hostname = self.blocking_recv('#')
-        # self._hostname = self._hostname.translate(None, '\r\n')
-        # print("DEBUG: Hostname is \n%s" % self._hostname)
+        if not self._VYATTA_present:
+            # Lets get the latest hostname. It could have changed
+            self.client_conn.send("\r\n")
+            # print("DEBUG: Hostname is \n%s" % self._hostname)
+            self.blocking_recv('#')
+            # self._hostname = self.blocking_recv('#')
+            # self._hostname = self._hostname.translate(None, '\r\n')
+            # print("DEBUG: Hostname is \n%s" % self._hostname)
 
-        # Let's figure out what our new prompt looks like
-        self.client_conn.send("%s\r\n" % "conf t")
-        self._config_hostname = self.blocking_recv("#")
-        self.client_conn.send("\r\n")
-        self._config_hostname = self.blocking_recv('#')
-        self._config_hostname = self._config_hostname.translate(None, '\r\n')
+            # Let's figure out what our new prompt looks like
+            self.client_conn.send("%s\r\n" % "conf t")
+            self._config_hostname = self.blocking_recv("#")
+            self.client_conn.send("\r\n")
+            self._config_hostname = self.blocking_recv('#')
+            self._config_hostname = self._config_hostname.translate(None, '\r\n')
 
-        # At this point we should be in config mode. Let's send the commands
-        # Also - the prompt can change (thanks devs). Let's ignore the prompt
-        # only save the actual output.
+            # At this point we should be in config mode. Let's send the commands
+            # Also - the prompt can change (thanks devs). Let's ignore the prompt
+            # only save the actual output.
 
-        self._mass_data = ""
-        for _command in _commands:
-            self.client_conn.send("%s\r\n" % _command)
-            time.sleep(0.5)
-            self._temp_line = self.blocking_recv(")#")
-            self._response = self._temp_line
-            self._temp_data = io.BytesIO(self._response)
-            self._lines = self._temp_data.readlines()
+            self._mass_data = ""
+            for _command in _commands:
+                self.client_conn.send("%s\r\n" % _command)
+                time.sleep(0.5)
+                self._temp_line = self.blocking_recv(")#")
+                self._response = self._temp_line
+                self._temp_data = io.BytesIO(self._response)
+                self._lines = self._temp_data.readlines()
 
-            # Let's strip out the whitespace
-            for _val, _line in enumerate(self._lines):
-                _line = _line.strip()
-                _line = _line.translate(None, '\r\n')
-                if _line == '':
-                    break
+                # Let's strip out the whitespace
+                for _val, _line in enumerate(self._lines):
+                    _line = _line.strip()
+                    _line = _line.translate(None, '\r\n')
+                    if _line == '':
+                        continue
 
-                if _command not in _line and ")#" not in _line:
-                    _dict_response[_command] = _line
+                    if _command not in _line and ")#" not in _line:
+                        _dict_response[_command] = _line
 
-        self.client_conn.send("%s\r\n" % "end")
-        self.blocking_recv("#")
+            self.client_conn.send("%s\r\n" % "end")
+            self.blocking_recv("#")
 
-        return _dict_response
+            return _dict_response
+
+        if self._VYATTA_present:
+            # Lets get the latest hostname. It could have changed
+            self.client_conn.send("\n")
+            # print("DEBUG: Hostname is \n%s" % self._hostname)
+            self.blocking_recv('$')
+            # self._hostname = self.blocking_recv('#')
+            # self._hostname = self._hostname.translate(None, '\r\n')
+            # print("DEBUG: Hostname is \n%s" % self._hostname)
+
+            # Let's figure out what our new prompt looks like
+            self.client_conn.send("%s\n" % "configure")
+            self._config_hostname = self.blocking_recv("#")
+            self.client_conn.send("\n")
+            self._config_hostname = self.blocking_recv('#')
+            self._config_hostname = self._config_hostname.translate(None, '\r\n ')
+            self._config_hostname = self._config_hostname.replace('[edit]', '')
+
+            # At this point we should be in config mode. Let's send the commands
+            # Also - the prompt can change (thanks devs). Let's ignore the prompt
+            # only save the actual output.
+
+            self._mass_data = ""
+            for _command in _commands:
+                self.client_conn.send("%s\n" % _command)
+                time.sleep(0.1) # Let things breathe
+                self._temp_line = self.blocking_recv(self._config_hostname)
+                self._response = self._temp_line
+                self._temp_data = io.BytesIO(self._response)
+                self._lines = self._temp_data.readlines()
+                _tmplines = ""
+
+                # Let's strip out the whitespace
+                for _val, _line in enumerate(self._lines):
+                    _line = _line.strip()
+                    _line = _line.translate(None, '\r\n')
+
+                    _line = self._clean_ansi.sub('', _line)
+
+                    if _line == '':
+                        continue
+
+                    if '[edit]' not in _line and _command not in _line and self._config_hostname not in _line:
+                        _tmplines = _tmplines + _line + "\r\n"
+
+                if _tmplines == "":
+                    _dict_response[_command] = 'ok'
+                else:
+                    _dict_response[_command] = _tmplines
+
+            self.client_conn.send("%s\n" % "commit")
+            self.blocking_recv(self._config_hostname)
+
+            return _dict_response
 
     def close(self):
         self.client.close()

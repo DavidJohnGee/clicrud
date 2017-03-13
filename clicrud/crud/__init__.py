@@ -22,11 +22,6 @@ import sys
 from clicrud.device.generic import generic
 
 
-# queue = output queue
-# finq = finished queue ('completed_run')
-# guiq = GUI Q for scriping. Send 1 for busy, 0 for free
-
-
 def read(queue, finq, ranonceq, **kwargs):
     _cli_input = "['command', 'commands', 'listofcommands']"
     _command_list = []

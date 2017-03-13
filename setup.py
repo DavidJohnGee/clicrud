@@ -5,13 +5,13 @@ Setup for clicrud
 from setuptools import setup, find_packages
 
 setup(name='clicrud',
-      version='0.2.17',
+      version='0.3.00',
       description='Brocade CLI CRUD Operations Library.',
       author='Brocade Communications Systems, Inc.',
       author_email='dgee@brocade.com',
       url='http://www.brocade.com/',
       packages=find_packages(),
-      install_requires=["paramiko", "multiprocessing", "psutil", "jinja2"],
+      install_requires=["paramiko>=2.0.2", "multiprocessing>=2.6.2.1", "psutil>=4.3.1", "jinja2"],
       classifiers=[
           'Development Status :: 5 - Production/Stable',
           'Intended Audience :: Developers',
