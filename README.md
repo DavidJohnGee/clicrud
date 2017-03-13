@@ -42,8 +42,8 @@ from clicrud.device.generic import generic
 MLX = "x.x.x.x"
 ICX = "y.y.y.y"
 VDX = "z.z.z.z"
-# vRouter support with version 0.3.00
-vRouter = "r.r.r.r"
+# VRouter support with version 0.3.00
+VRouter = "r.r.r.r"
 
 # With version 0.3.00, 'b64password' and 'b64enable' also exist as arguments for the below.
 # They are decoded and copied to 'password' and 'enable' automatically.
@@ -54,22 +54,27 @@ transport = generic(host=VDX, username="admin", enable="password",
 print "\r\n===Show VLAN brief:"
 # Return_type can either be a string or list. One is better for scripts,
 # the other better for automation perhaps!
-print transport.read("show vlan brief", return_type="string")
+if transport.connected:
+    print transport.read("show vlan brief", return_type="string")
 
 
 print "\r\n===Configuration data and feedback:"
-print transport.configure(["no protocol vrrp"])
+if transport.connected:
+    print transport.configure(["no protocol vrrp"])
 
 
 print "\r\n===Show interface:"
-print transport.read("show interface", return_type="string")
+if transport.connected:
+    print transport.read("show interface", return_type="string")
 
 
 
 # print transport.protocol
 # print transport.connected
-transport.close()
+if transport.connected:
+    transport.close()
 ```
+
 ##License
 CLICRUD is released under the APACHE 2.0 license. See ./LICENSE for more
 information.
