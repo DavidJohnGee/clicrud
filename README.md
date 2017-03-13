@@ -1,5 +1,5 @@
 #clicrud
-This Python library has been built by Brocade, specifically tuned for Brocade CLI (tested on ICX, MLX, CER_CES)
+This Python library has been built by Brocade, specifically tuned for Brocade CLI (tested on ICX, MLX, CER_CES, vRouter)
 
 This Python Library takes a single, list or file based list of CLI commands and generates both programmatic
 output as well as file based output. Output can be human readable or can be in JSON, where the key is the command
@@ -11,7 +11,7 @@ The newer 'configure' method on the generic class, allows users to insert config
 This library has clocked through 1200 CLI commands using Telnet in about 10 seconds. SSH is a little slower due to keying and
 crypto functionality. Onboard CPUs can't handle the same data rates as un-encrypted Telnet.
 
-This library when used in CLI Scripting mode (uses a helper class to setup a splash screen and take command line arguments) 
+This library when used in CLI Scripting mode (uses a helper class to setup a splash screen and take command line arguments)
 will provide a basic loop so the same commands can be collected over a time period in seconds.
 
 ####Generic
@@ -42,6 +42,11 @@ from clicrud.device.generic import generic
 MLX = "x.x.x.x"
 ICX = "y.y.y.y"
 VDX = "z.z.z.z"
+# vRouter support with version 0.3.00
+vRouter = "r.r.r.r"
+
+# With version 0.3.00, 'b64password' and 'b64enable' also exist as arguments for the below.
+# They are decoded and copied to 'password' and 'enable' automatically.
 
 transport = generic(host=VDX, username="admin", enable="password",
                     method="ssh", password="password")
