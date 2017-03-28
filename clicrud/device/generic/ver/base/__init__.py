@@ -97,15 +97,19 @@ class telnet(object):
                 if "name:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
+                    continue
                 if "login:" in _detect_buffer:
                     self._send_username = True
                     _detect = False
+                    continue
                 if "login" in _detect_buffer:
                     self._send_username = True
                     _detect = False
+                    continue
                 if ">" in _detect_buffer:
                     self._send_enable = True
                     _detect = False
+                    continue
                 time.sleep(0.1)
                 _timer += 1
                 if _timer >= 240:
@@ -141,26 +145,44 @@ class telnet(object):
                     if "password" in _detect_buffer:
                         self.client.write(_args['password'] + "\r")
                         _detect = False
+                        continue
                     if "login" in _detect_buffer:
                         self.client.write("%s\r\n" % _args['username'])
                         _detect = False
+                        continue
                     if "name" in _detect_buffer:
                         self.client.write("%s\r\n" % _args['username'])
                         _detect = False
+                        continue
                 if _detect:
                     time.sleep(0.1)
                     _timer += 1
                     if _timer >= 240:
                         _detect = False
             _detect = True
+
+            # To deal with spurious VDX Telnet issues
+            if 'password' in _detect_buffer:
+                self.client.write(_args['password'] + "\r")
+
+            _detect = True
+
             while _detect:
                 _detect_buffer = ""
                 _detect_buffer += self.client.read_some()
                 _detect_buffer = _detect_buffer.lower()
 
+                # VDX CLI trickery I tell ye
+                if "warning: the default password of" in _detect_buffer:
+                    _detect = False
+                    _vdxTrickery = True
+                    continue
+
+                # Just in case password is located
                 if "password" in _detect_buffer:
                     _detect = False
-                    break
+                    continue
+
                 if _detect:
                     time.sleep(0.1)
                     _timer += 1
@@ -169,7 +191,11 @@ class telnet(object):
 
             if self._VYATTA_present:
                 self.client.write(_args['password'] + "\n")
-            else:
+
+            if _vdxTrickery:
+                _error_check = self.client.read_until("accounts have not been changed", timeout=2)
+
+            if not self._VYATTA_present and not _vdxTrickery:
                 self.client.write(_args['password'] + "\r")
             # Now we need to read some until we get > or #
             # to determine enable requirement
@@ -262,7 +288,20 @@ class telnet(object):
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
                         _detect = False
-                        break
+                        continue
+
+                    if "no password has been assigned" in _detect_buffer:
+                        self._send_enable = False
+                        _detect = False
+                        # Takes in to account exec banner
+                        _error_check = self.client.read_until("#", timeout=1)
+
+                        # Do this to get a clean prompt
+                        self.client.write("\r")
+                        self._hostname = self.client.read_until("#")
+                        self._hostname = self._hostname.translate(None, '\r\n')
+                        continue
+
                     if "password" in _detect_buffer:
                         self._send_enable = False
                         _detect = False
@@ -277,8 +316,7 @@ class telnet(object):
                         self.client.write("\r")
                         self._hostname = self.client.read_until("#")
                         self._hostname = self._hostname.translate(None, '\r\n')
-
-                        break
+                        continue
 
                     if _detect:
                         time.sleep(0.1)
@@ -288,11 +326,14 @@ class telnet(object):
 
                 if _detect is False:
 
+                    # Clear the buffer 'not quite empty' scenario.
+                    _error_check = self.client.read_until("#", timeout=2)
                     tmp = self.read("show version | inc NOS", return_type="string")
 
                     # Need this to clear the receive buffer
                     self.client.write("\n\r")
                     self.output = self.client.read_until(self._hostname)
+                    _error_check = self.client.read_until("#", timeout=2)
 
                     if 'NOS' in tmp:
                         self._NOS_present = True
@@ -303,7 +344,7 @@ class telnet(object):
                         _detect = False
 
                     if self._NOS_present is False:
-                        self.client.write("skip\r\n")
+                        self.client.write("skip\r")
                         self.output = self.client.read_until(self._hostname)
                         _detect = False
 
@@ -319,8 +360,12 @@ class telnet(object):
 
         self.client.write("\r")
         self.output = self.client.read_until(self._hostname)
+        # self.output = self.client.read_until(self._hostname)
 
         logging.info("Telnet class instantiated")
+
+        # Clean up the buffer
+        _error_check = self.client.read_until("#", timeout=2)
 
         logging.info("Checking for attributes")
         if "attributes" in _args:
@@ -349,6 +394,8 @@ class telnet(object):
             Do not try and frak with this. If you want
             to run config, do it with the configure method.
         """
+        # _detect_buffer += self.client.read_some()
+        # _detect_buffer = _detect_buffer.lower()
 
         _string = ""
         _args = kwargs
@@ -363,10 +410,6 @@ class telnet(object):
             self._read_data = self.client.read_until(self._hostname.strip())
 
         if self._NOS_present is False and self._VYATTA_present is False:
-            self.client.write("\r\n")
-            self._read_data = self.client.read_until(self._hostname.strip())
-            self.client.write("%s\r\n" % command)
-            self._read_data = self.client.read_until(self._hostname.strip())
             self.client.write("%s\r\n" % command)
             self._read_data = self.client.read_until(self._hostname.strip())
 
@@ -377,10 +420,7 @@ class telnet(object):
 
         if self._NOS_present:
             self.client.write("\r\n")
-            self.client.write("\r\n")
-            self.client.read_until(self._hostname)
-            self.client.write("\n")
-            self.client.read_until(self._hostname)
+            _error_check = self.client.read_until(self._hostname, timeout=2)
 
         for line in self._lines:
             if line != '\r\n' and line != self._hostname:
@@ -465,9 +505,6 @@ class telnet(object):
                 time.sleep(0.5)
                 self._temp_line = self.client.read_until(")#")
 
-                if self._NOS_present is True:
-                    self._temp_line = self.client.read_until(")#")
-
                 _tmp = io.BytesIO(self._temp_line)
                 self.count = 0
 
@@ -531,6 +568,11 @@ class telnet(object):
 
             self.client.write("%s\n" % "commit")
             self.client.read_until(self._config_hostname)
+
+            # Clean up any dodgy buffer remains
+
+        _error_check = self.client.read_until("#", timeout=2)
+        _error_check = self.client.read_until("#", timeout=2)
 
         return _dict_response
 
