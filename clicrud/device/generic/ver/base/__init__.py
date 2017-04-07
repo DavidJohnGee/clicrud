@@ -81,6 +81,7 @@ class telnet(object):
         # Let's detect whether authentication or enable modes
         # for auth are configured
         _detect = True
+        _vdxTrickery = False
         _detect_buffer = ""
         _timer = 0
         self._send_username = False
