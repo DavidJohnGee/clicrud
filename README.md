@@ -1,4 +1,4 @@
-#clicrud
+# clicrud
 This Python library has been built by Brocade, specifically tuned for Brocade CLI (tested on ICX, MLX, CER_CES, vRouter)
 
 This Python Library takes a single, list or file based list of CLI commands and generates both programmatic
@@ -14,21 +14,21 @@ crypto functionality. Onboard CPUs can't handle the same data rates as un-encryp
 This library when used in CLI Scripting mode (uses a helper class to setup a splash screen and take command line arguments)
 will provide a basic loop so the same commands can be collected over a time period in seconds.
 
-####Generic
+#### Generic
 Generic is the device class. It is possible to copy this class and 'tweak it' for other usage.
 
-####Attributes
+#### Attributes
 Device attributes collected via a dictionary are arbitrary and not related per device.
 They are entirely customisable, so have fun!
 
 In order to use the attributes, create a copy of the attribute class in the same directory as your code. As long as you follow the pythonic example in the examples directory, you're good to go.
 
-##Installation
+## Installation
 ```
 pip install clicrud
 ```
 
-##Usage
+## Usage
 
 There are a number of ways to actually use this library. Check the samples directory for more examples.
 
@@ -75,6 +75,6 @@ if transport.connected:
     transport.close()
 ```
 
-##License
+## License
 CLICRUD is released under the APACHE 2.0 license. See ./LICENSE for more
 information.
