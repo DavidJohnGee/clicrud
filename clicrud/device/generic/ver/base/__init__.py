@@ -143,24 +143,26 @@ class telnet(object):
                     _detect_buffer = ""
                     _detect_buffer += self.client.read_some()
                     _detect_buffer = _detect_buffer.lower()
-                    if "password" in _detect_buffer:
-                        self.client.write(_args['password'] + "\r")
-                        _detect = False
-                        continue
+
                     if "login" in _detect_buffer:
                         self.client.write("%s\r\n" % _args['username'])
                         _detect = False
+                        _detect_buffer = ""
+                        _detect_buffer += self.client.read_some()
+                        _detect_buffer = _detect_buffer.lower()
                         continue
                     if "name" in _detect_buffer:
                         self.client.write("%s\r\n" % _args['username'])
+                        _detect_buffer = ""
+                        _detect_buffer += self.client.read_some()
+                        _detect_buffer = _detect_buffer.lower()
                         _detect = False
                         continue
-                if _detect:
-                    time.sleep(0.1)
-                    _timer += 1
-                    if _timer >= 240:
-                        _detect = False
-            _detect = True
+                    if _detect:
+                        time.sleep(0.1)
+                        _timer += 1
+                        if _timer >= 240:
+                            _detect = False
 
             # To deal with spurious VDX Telnet issues
             if 'password' in _detect_buffer:
